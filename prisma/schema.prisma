@@ -1,0 +1,38 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model RfpQa {
+  id             Int       @id @default(autoincrement())
+  record_id      String    @db.Uuid
+  question       String
+  answer         String
+  metadata       Json?     @default("{}")
+  ingestion_date DateTime? @db.Timestamptz(6)
+  company_name   String?
+  company_crm_id String?
+  creation_date  DateTime? @db.Timestamptz(6)
+  rfp_id         String?
+
+  @@map("rfp_qa")
+}
+
+model Faq {
+  id         Int      @id @default(autoincrement())
+  question   String
+  answer     String
+  metadata   Json?
+  created_at DateTime @default(now())
+  updated_at DateTime @updatedAt
+
+  /// New field with default "private"
+  visibility String   @default("private")
+
+  @@map("faq")
+}
+
