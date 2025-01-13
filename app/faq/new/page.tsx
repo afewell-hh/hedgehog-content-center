@@ -22,8 +22,8 @@ export default function NewFaqPage() {
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">Create New FAQ</h1>
+    <div className="container p-4">
+      <h1 className="text-3xl font-bold text-primary mb-4">Create New FAQ</h1>
       <label className="block mb-1">Question:</label>
       <input
         className="border p-1 w-full mb-2"

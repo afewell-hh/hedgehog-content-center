@@ -1,3 +1,5 @@
+// prisma/schema.prisma
+
 generator client {
   provider = "prisma-client-js"
 }
@@ -22,17 +24,16 @@ model RfpQa {
   @@map("rfp_qa")
 }
 
-model Faq {
+model faq {
   id         Int      @id @default(autoincrement())
   question   String
   answer     String
   metadata   Json?
   created_at DateTime @default(now())
   updated_at DateTime @updatedAt
-
-  /// New field with default "private"
   visibility String   @default("private")
+  status     String   @default("draft")
+  notes      String?
 
   @@map("faq")
 }
-

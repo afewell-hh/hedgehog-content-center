@@ -1,18 +1,86 @@
-import { prisma } from "@/app/lib/prisma";
-import Link from "next/link";
-// If your model is called Faq with capital F, adjust here:
-import { Faq } from "@prisma/client";
+"use client";
 
-export default async function FaqListPage() {
-  // fetch from DB
-  const faqList: Faq[] = await prisma.faq.findMany({
-    orderBy: { id: "asc" },
-  });
+import { useState, useEffect } from "react";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef } from "ag-grid-community";
+import { useSearchParams } from "next/navigation";
+import { ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
+import Link from "next/link";
+
+ModuleRegistry.registerModules([ClientSideRowModelModule]);
+
+interface Faq {
+  id: number;
+  question: string;
+  answer: string;
+  metadata: object;
+  visibility: string;
+}
+
+export default function FaqListPage() {
+  const searchParams = useSearchParams();
+  const filter = searchParams.get("q") || "";
+
+  const [faqRecords, setFaqRecords] = useState<Faq[]>([]);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      const response = await fetch(`/api/faq?q=${filter}`);
+      if (response.ok) {
+        const data = await response.json();
+        setFaqRecords(data);
+      } else {
+        console.error("Failed to fetch FAQ data.");
+      }
+    };
+
+    fetchData();
+  }, [filter]);
+
+  // Define column definitions for ag-grid
+  const columnDefs: ColDef[] = [
+    {
+      headerName: "View/Edit",
+      width: 100,
+      cellRenderer: (params: { data: { id: number } }) => (
+        <Link href={`/faq/${params.data.id}`}>View/Edit</Link>
+      ),
+    },
+    {
+      headerName: "ID",
+      field: "id",
+      filter: "agNumberColumnFilter",
+    },
+    {
+      headerName: "Question",
+      field: "question",
+      filter: "agTextColumnFilter",
+      flex: 1,
+    },
+    {
+      headerName: "Answer",
+      field: "answer",
+      filter: "agTextColumnFilter",
+      flex: 1,
+    },
+    {
+      headerName: "Metadata",
+      field: "metadata",
+      filter: "agTextColumnFilter",
+      flex: 1,
+    },
+    {
+      headerName: "Visibility",
+      field: "visibility",
+      filter: "agTextColumnFilter",
+      flex: 1,
+    },
+  ];
 
   return (
-    <div className="p-4">
-      <div className="flex justify-between items-center mb-4">
-        <h1 className="text-xl font-bold">FAQ List</h1>
+    <div className="container p-4">
+      <div className="container flex justify-between items-center mb-4">
+        <h1 className="text-3xl font-bold text-primary">FAQ List</h1>
         <Link
           href="/faq/new"
           className="bg-blue-500 text-white px-3 py-1 rounded"
@@ -21,25 +89,17 @@ export default async function FaqListPage() {
         </Link>
       </div>
 
-      <ul className="space-y-4">
-        {faqList.map((item) => (
-          <li key={item.id} className="border-b pb-2">
-            <h2 className="text-lg font-semibold">
-              {/* Hyperlink to detail page */}
-              <Link href={`/faq/${item.id}`} className="text-blue-600 underline">
-                {item.question}
-              </Link>
-            </h2>
-
-            {/* If the answer has HTML tags, let's show them raw or strip them */}
-            {/* Option A: show them as raw text: */}
-            <p>{item.answer}</p>
-
-            {/* Option B: render HTML with dangerouslySetInnerHTML: */}
-            {/* <div dangerouslySetInnerHTML={{ __html: item.answer }} /> */}
-          </li>
-        ))}
-      </ul>
+      <div className="h-[600px] w-full">
+        <AgGridReact
+          rowData={faqRecords}
+          columnDefs={columnDefs}
+          domLayout="autoHeight"
+          defaultColDef={{
+            sortable: true,
+            resizable: true,
+          }}
+        />
+      </div>
     </div>
   );
 }

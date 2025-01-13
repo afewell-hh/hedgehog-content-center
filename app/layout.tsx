@@ -2,52 +2,70 @@
 import "./globals.css";
 import Link from "next/link";
 import type { Metadata } from "next";
+import Image from "next/image";
+import { Montserrat } from "@next/font/google";
+
+const montserrat = Montserrat({
+  weight: ["400"],
+  subsets: ["latin"],
+  variable: "--font-montserrat",
+});
 
 export const metadata: Metadata = {
   title: "Hedgehog Content Center",
 };
 
-// export default function RootLayout({ children }: { children: React.ReactNode }) {
-//   return (
-//     <html lang="en">
-//       <body className="bg-gray-100 text-gray-800 min-h-screen">
-//         <header className="bg-white shadow mb-4">
-//           <div className="max-w-4xl mx-auto py-4 px-6 flex items-center justify-between">
-//             <h1 className="text-lg font-bold">Hedgehog Content Center</h1>
-//             {/* nav links */}
-//           </div>
-//         </header>
-//         <main className="max-w-4xl mx-auto px-4 pb-10">{children}</main>
-//       </body>
-//     </html>
-//   );
-// }
-
-export default function RootLayout({ children }: { children: React.ReactNode }) {
+export default function RootLayout({
+  children,
+}: {
+  children: React.ReactNode;
+}) {
   return (
-    <html lang="en">
-      <body className="bg-gray-100 text-gray-800 min-h-screen">
-        <header className="bg-white shadow mb-4">
-          <div className="max-w-7xl mx-auto py-4 px-6 flex items-center justify-between">
-            <h1 className="text-lg font-bold">Hedgehog Content Center</h1>
-            <nav className="space-x-4">
-              <Link href="/" className="text-blue-600 hover:underline">
-                Home
-              </Link>
-              <Link href="/rfp-qa" className="text-blue-600 hover:underline">
-                RFP_QA
-              </Link>
-              <Link href="/create-faq" className="text-blue-600 hover:underline">
-                Create FAQ
-              </Link>
-              <Link href="/faq" className="text-blue-600 hover:underline">
-                FAQ
-              </Link>
+    <html lang="en" className={montserrat.variable}>
+      <body className="bg-background text-text min-h-screen flex flex-col">
+        <header className="bg-white shadow mb-4 sticky top-0 z-50">
+          <div className="container mx-auto px-6 flex items-center justify-between h-16">
+            <Link href="/" className="flex items-center">
+              <Image
+                src="/Hedgehog-color-large.svg"
+                alt="Hedgehog Logo"
+                width={150}
+                height={50}
+              />
+              <h1 className="text-lg font-bold text-primary ml-2">
+                Content Center
+              </h1>
+            </Link>
+            <nav>
+              <ul className="flex space-x-8">
+                <li>
+                  <Link href="/" className="nav-link">
+                    Home
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/rfp-qa" className="nav-link">
+                    RFP_QA
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/create-faq" className="nav-link">
+                    Create FAQ
+                  </Link>
+                </li>
+                <li>
+                  <Link href="/faq" className="nav-link">
+                    FAQ
+                  </Link>
+                </li>
+              </ul>
             </nav>
           </div>
         </header>
 
-        <main className="max-w-7xl mx-auto px-6 pb-10">{children}</main>
+        <main className="container mx-auto px-6 pb-10 flex-grow">
+          {children}
+        </main>
       </body>
     </html>
   );

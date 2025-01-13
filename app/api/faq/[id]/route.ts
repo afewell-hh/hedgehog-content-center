@@ -1,17 +1,33 @@
-// app/api/faq/route.ts
+// app/api/faq/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "@/app/lib/prisma";
+import { prisma } from "../../../lib/prisma";
 
-export async function POST(req: NextRequest) {
-  const { question, answer, metadata } = await req.json();
+interface Params {
+  id: string;
+}
 
-  const newFaq = await prisma.faq.create({
-    data: {
-      question: question || "",
-      answer: answer || "",
-      metadata: metadata || {},
-    },
-  });
+export async function PUT(req: NextRequest, { params }: { params: Params }) {
+  const faqId = parseInt(params.id, 10);
+  const { question, answer, visibility, status, notes } = await req.json();
 
-  return NextResponse.json(newFaq);
+  try {
+    const updatedFaq = await prisma.faq.update({
+      where: { id: faqId },
+      data: {
+        question,
+        answer,
+        visibility,
+        status,
+        notes,
+      },
+    });
+
+    return NextResponse.json(updatedFaq);
+  } catch (error) {
+    console.error("Error updating FAQ:", error);
+    return NextResponse.json(
+      { error: "Failed to update FAQ." },
+      { status: 500 }
+    );
+  }
 }

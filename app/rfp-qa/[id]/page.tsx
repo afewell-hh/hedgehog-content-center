@@ -24,8 +24,8 @@ export default async function RfpQaDetailPage({ params }: RfpQaDetailPageProps) 
   }
 
   return (
-    <div className="p-4">
-      <h1 className="text-xl font-bold mb-4">RFP_QA Detail</h1>
+    <div className="container p-4">
+      <h1 className="text-3xl font-bold text-primary mb-4">RFP_QA Detail</h1>
       <p><strong>ID:</strong> {record.id}</p>
       <p><strong>Question:</strong> {record.question}</p>
       <p><strong>Answer:</strong> {record.answer}</p>

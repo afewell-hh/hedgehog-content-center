@@ -1,3 +1,4 @@
+// app/create-faq/CreateFaqPageClient.tsx
 "use client";
 
 import { useState, useEffect } from "react";
@@ -12,7 +13,7 @@ export default function CreateFaqPageClient() {
   const [proposedQuestion, setProposedQuestion] = useState("");
   const [proposedAnswer, setProposedAnswer] = useState("");
 
-  // 1) Fetch RFP_QA list from an API route, e.g. /api/rfp-qa
+  // 1) Fetch RFP_QA list from an API route, e.g., /api/rfp-qa
   useEffect(() => {
     async function fetchRfpQa() {
       const res = await fetch("/api/rfp-qa");
@@ -44,6 +45,8 @@ export default function CreateFaqPageClient() {
       // Expect { question: "...", answer: "..." }
       setProposedQuestion(data.question);
       setProposedAnswer(data.answer);
+    } else {
+      alert("Failed to generate FAQ. Please try again.");
     }
   }
 
@@ -59,8 +62,10 @@ export default function CreateFaqPageClient() {
       }),
     });
     if (res.ok) {
-      alert("FAQ created!");
+      alert("FAQ created successfully!");
       router.push("/faq");
+    } else {
+      alert("Failed to create FAQ. Please try again.");
     }
   }
 
@@ -68,7 +73,7 @@ export default function CreateFaqPageClient() {
     <div className="flex gap-4">
       {/* LEFT: Scrollable RFP_QA List */}
       <div className="w-1/3 border-r border-gray-300 h-[80vh] overflow-y-auto p-2">
-        <h2 className="font-bold mb-2">RFP_QA Records</h2>
+        <h2 className="text-2xl font-bold text-primary mb-2">RFP_QA Records</h2>
         {rfpList.map((rfp) => (
           <div
             key={rfp.id}
@@ -102,7 +107,7 @@ export default function CreateFaqPageClient() {
             </button>
 
             <div className="mt-4">
-              <h2 className="font-bold">Proposed FAQ Entry</h2>
+              <h2 className="text-xl font-bold text-primary">Proposed FAQ Entry</h2>
               <label className="block mt-2">Question</label>
               <input
                 className="block border w-full p-1"
