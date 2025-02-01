@@ -132,7 +132,7 @@ export async function POST(req: NextRequest) {
           model: "gpt-3.5-turbo",
           messages: messages,
           functions: functions,
-          function_call: "auto",
+          function_call: { name: "return_faq" }, // Force the model to use return_faq
           max_tokens: 250,
           temperature: 0.7,
         });
@@ -163,7 +163,7 @@ export async function POST(req: NextRequest) {
             model: "gpt-3.5-turbo",
             messages: messages,
             functions: functions,
-            function_call: { name: "return_faq" },
+            function_call: { name: "return_faq" }, // Force the model to use return_faq
             max_tokens: 250,
             temperature: 0.7,
           });
@@ -187,7 +187,8 @@ export async function POST(req: NextRequest) {
             answer: parsedFaq.answer,
           });
         } else {
-          throw new Error("Unexpected LLM response format");
+          // If we get here, something went wrong with function calling
+          throw new Error("Unexpected LLM response format: Model did not use the required function");
         }
       } catch (error) {
         console.error("OpenAI API error:", error);

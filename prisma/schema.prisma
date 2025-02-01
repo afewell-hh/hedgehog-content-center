@@ -20,6 +20,7 @@ model RfpQa {
   company_crm_id String?
   creation_date  DateTime? @db.Timestamptz(6)
   rfp_id         String?
+  faqs           faq[]
 
   @@map("rfp_qa")
 }
@@ -34,6 +35,8 @@ model faq {
   visibility String   @default("private")
   status     String   @default("draft")
   notes      String?
+  rfpQaId    Int?
+  rfpQa      RfpQa?   @relation(fields: [rfpQaId], references: [id])
 
   @@map("faq")
 }

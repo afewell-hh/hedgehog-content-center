@@ -7,6 +7,7 @@
 - OpenAI GPT-3.5-turbo integration for FAQ generation
 - TailwindCSS for styling
 - SimpleMDE for Markdown editing
+- TipTap Editor for rich text editing
 
 ## Completed Features
 
@@ -43,16 +44,24 @@
 - Dependencies: OpenAI API, SimpleMDE, Prisma, PostgreSQL
 
 ### FAQ Management (/app/faq/)
-- Description: Interface for browsing FAQ entries
+- Description: Interface for browsing and editing FAQ entries
 - Implementation:
   - AG Grid with filtering
-  - Status management
-  - Visibility controls
+  - Status management (draft/review/approved/archived)
+  - Visibility controls (public/private)
   - Markdown rendering
+  - Rich text editing
+  - Internal notes
+  - LLM-assisted content refinement
+  - Related FAQ display
 - Location:
-  - Page: `/app/faq/page.tsx`
-  - API: `/app/api/faq/route.ts`
-- Dependencies: AG Grid, Prisma, PostgreSQL
+  - List view: `/app/faq/page.tsx`
+  - Detail view: `/app/faq/[id]/page.tsx`
+  - Editor component: `/app/faq/[id]/FaqEditor.tsx`
+  - LLM component: `/app/components/LlmInteraction.tsx`
+  - Related FAQs component: `/app/components/RelatedFaqs.tsx`
+  - API: `/app/api/faq/[id]/route.ts`
+- Dependencies: AG Grid, Prisma, PostgreSQL, OpenAI API, TipTap Editor
 
 ### LLM Integration
 
@@ -76,6 +85,22 @@
 - Graceful handling of OpenAI API errors
 
 ### Data Models
+
+#### FAQ Model
+```typescript
+{
+  id: number,
+  question: string,
+  answer: string,
+  visibility: string,   // public/private
+  status: string,       // draft/review/approved/archived
+  notes: string | null, // Internal notes
+  metadata: any,
+  rfpQaId: number | null,
+  created_at: DateTime,
+  updated_at: DateTime
+}
+```
 
 #### FAQ Generation Request
 ```typescript
@@ -135,6 +160,7 @@ No known issues in the current implementation.
 - SimpleMDE React: Latest version
 - React Markdown: Latest version
 - Remark GFM: Latest version
+- TipTap Editor: Latest version
 
 ### Backend
 - PostgreSQL: Latest version

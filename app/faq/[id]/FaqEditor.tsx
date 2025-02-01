@@ -1,4 +1,3 @@
-// app/faq/[id]/FaqEditor.tsx
 "use client";
 
 import { useState, useCallback } from "react";
@@ -10,55 +9,149 @@ interface FaqEditorProps {
   id: number;
   initialQuestion: string;
   initialAnswer: string;
+  metadata: any;
+  visibility: string;
+  status: string;
+  notes: string | null;
 }
 
 export default function FaqEditor({
   id,
   initialQuestion,
   initialAnswer,
+  metadata,
+  visibility: initialVisibility,
+  status: initialStatus,
+  notes: initialNotes,
 }: FaqEditorProps) {
   const router = useRouter();
   const [question, setQuestion] = useState(initialQuestion);
+  const [visibility, setVisibility] = useState(initialVisibility);
+  const [status, setStatus] = useState(initialStatus);
+  const [notes, setNotes] = useState(initialNotes || '');
+  const [isSaving, setIsSaving] = useState(false);
+
   const editor = useEditor({
     extensions: [StarterKit],
     content: initialAnswer,
+    editorProps: {
+      attributes: {
+        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none',
+      },
+    },
   });
 
-  // We'll call a route or server action to save
   const handleSave = useCallback(async () => {
-    const newAnswer = editor?.getHTML() || "";
-    const res = await fetch(`/api/faq/${id}`, {
-      method: "PUT",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ question, answer: newAnswer }),
-    });
-    if (res.ok) {
-      alert("FAQ updated!");
+    if (isSaving) return;
+    setIsSaving(true);
+    try {
+      const newAnswer = editor?.getHTML() || "";
+      const res = await fetch(`/api/faq/${id}`, {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ 
+          question, 
+          answer: newAnswer,
+          visibility,
+          status,
+          notes,
+          metadata, // Keep existing metadata
+        }),
+      });
+      
+      if (!res.ok) {
+        const error = await res.text();
+        throw new Error(error);
+      }
+      
       router.refresh(); // refresh the page to get new data
-    } else {
-      alert("Error updating FAQ");
+    } catch (error) {
+      console.error('Error saving FAQ:', error);
+      alert("Error updating FAQ: " + (error as Error).message);
+    } finally {
+      setIsSaving(false);
     }
-  }, [editor, question, id, router]);
+  }, [editor, question, visibility, status, notes, metadata, id, router, isSaving]);
 
   return (
-    <div>
-      <label className="block font-semibold mb-1">Question:</label>
-      <input
-        className="border p-1 w-full mb-4"
-        value={question}
-        onChange={(e) => setQuestion(e.target.value)}
-      />
+    <div className="space-y-6">
+      <div>
+        <label className="block font-semibold mb-2" htmlFor="question">
+          Question:
+        </label>
+        <input
+          id="question"
+          className="w-full px-3 py-2 border rounded-md"
+          value={question}
+          onChange={(e) => setQuestion(e.target.value)}
+        />
+      </div>
 
-      <label className="block font-semibold mb-1">Answer (Rich Text):</label>
-      <div className="border p-2 mb-4">
-        {editor && <EditorContent editor={editor} />}
+      <div>
+        <label className="block font-semibold mb-2" htmlFor="answer">
+          Answer:
+        </label>
+        <div className="border rounded-md p-4 bg-white">
+          {editor && <EditorContent editor={editor} />}
+        </div>
+      </div>
+
+      <div>
+        <label className="block font-semibold mb-2" htmlFor="visibility">
+          Visibility:
+        </label>
+        <select
+          id="visibility"
+          className="w-full px-3 py-2 border rounded-md"
+          value={visibility}
+          onChange={(e) => setVisibility(e.target.value)}
+        >
+          <option value="public">Public</option>
+          <option value="private">Private</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block font-semibold mb-2" htmlFor="status">
+          Status:
+        </label>
+        <select
+          id="status"
+          className="w-full px-3 py-2 border rounded-md"
+          value={status}
+          onChange={(e) => setStatus(e.target.value)}
+        >
+          <option value="draft">Draft</option>
+          <option value="review">Review</option>
+          <option value="approved">Approved</option>
+          <option value="archived">Archived</option>
+        </select>
+      </div>
+
+      <div>
+        <label className="block font-semibold mb-2" htmlFor="notes">
+          Notes:
+        </label>
+        <textarea
+          id="notes"
+          className="w-full px-3 py-2 border rounded-md"
+          value={notes}
+          onChange={(e) => setNotes(e.target.value)}
+          rows={4}
+          placeholder="Add any internal notes here..."
+        />
       </div>
 
       <button
         onClick={handleSave}
-        className="px-4 py-2 bg-green-500 text-white rounded"
+        disabled={isSaving}
+        className={`w-full px-4 py-2 text-white rounded-md ${
+          isSaving
+            ? "bg-gray-400 cursor-not-allowed"
+            : "bg-blue-500 hover:bg-blue-600"
+        }`}
       >
-        Save
+        {isSaving ? "Saving..." : "Save Changes"}
       </button>
     </div>
   );
