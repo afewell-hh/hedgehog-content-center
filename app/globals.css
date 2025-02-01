@@ -87,7 +87,7 @@ a {
   vertical-align: middle;
   user-select: none;
   border: 1px solid transparent;
-  padding: 0.5rem 1rem;
+  padding: 0.25rem 0.75rem; /* Reduced padding */
   font-size: 1rem;
   line-height: 1.5;
   border-radius: var(--button-border-radius);

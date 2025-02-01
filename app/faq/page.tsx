@@ -1,11 +1,11 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import { AgGridReact } from "ag-grid-react";
 import { ColDef } from "ag-grid-community";
 import { useSearchParams } from "next/navigation";
 import { ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
-import Link from "next/link";
 
 ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
@@ -15,6 +15,8 @@ interface Faq {
   answer: string;
   metadata: object;
   visibility: string;
+  status: string;
+  notes: string | null;
 }
 
 export default function FaqListPage() {
@@ -41,10 +43,14 @@ export default function FaqListPage() {
   const columnDefs: ColDef[] = [
     {
       headerName: "View/Edit",
-      width: 100,
+      width: 150,
       cellRenderer: (params: { data: { id: number } }) => (
-        <Link href={`/faq/${params.data.id}`}>View/Edit</Link>
+        <Link href={`/faq/${params.data.id}`}>
+        <button className="btn btn-primary">View/Edit</button>
+      </Link>
       ),
+      autoHeight: true,
+      cellClass: "grid-button-cell", // Add this line
     },
     {
       headerName: "ID",
@@ -75,21 +81,24 @@ export default function FaqListPage() {
       filter: "agTextColumnFilter",
       flex: 1,
     },
+    {
+      headerName: "Status",
+      field: "status",
+      filter: "agTextColumnFilter",
+      flex: 1,
+    },
   ];
 
   return (
     <div className="container p-4">
-      <div className="container flex justify-between items-center mb-4">
+      <div className="flex justify-between items-center mb-4">
         <h1 className="text-3xl font-bold text-primary">FAQ List</h1>
-        <Link
-          href="/faq/new"
-          className="bg-blue-500 text-white px-3 py-1 rounded"
-        >
+        <Link href="/faq/new" className="btn btn-primary">
           New FAQ
         </Link>
       </div>
 
-      <div className="h-[600px] w-full">
+      <div className="ag-theme-alpine h-[600px] w-full">
         <AgGridReact
           rowData={faqRecords}
           columnDefs={columnDefs}

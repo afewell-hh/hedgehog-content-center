@@ -235,10 +235,10 @@ export default function CreateFaqDetailPage() {
           onClick={handlePreviousRfp}
           className="btn btn-secondary mr-2"
         >
-          Previous RFP
+          Previous Record
         </button>
         <button onClick={handleNextRfp} className="btn btn-secondary">
-          Next RFP
+          Next Record
         </button>
       </div>
 

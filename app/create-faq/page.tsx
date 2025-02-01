@@ -51,6 +51,7 @@ export default function CreateFaqPage() {
           Create FAQ
         </button>
       ),
+      autoHeight: true,
     },
     {
       headerName: "ID",
