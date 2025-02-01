@@ -6,9 +6,51 @@ const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
 });
 
+async function searchGitHedgehog(query: string): Promise<string> {
+  try {
+    const response = await fetch(`https://duckduckgo.com/html/?q=site:githedgehog.com ${encodeURIComponent(query)}`);
+    if (!response.ok) {
+      console.error('Search request failed:', response.statusText);
+      return '';
+    }
+    const html = await response.text();
+    
+    // Basic parsing of search results - you might want to enhance this
+    const results = html.match(/<a class="result__url".*?>(.*?)<\/a>/g) || [];
+    const snippets = html.match(/<a class="result__snippet".*?>(.*?)<\/a>/g) || [];
+    
+    return results.concat(snippets).slice(0, 3).join('\n');
+  } catch (error) {
+    console.error('Search error:', error);
+    return '';
+  }
+}
+
 export async function POST(req: NextRequest) {
   try {
     const { mode, question, answer, userInput, currentFaq } = await req.json();
+
+    // Validate required fields
+    if (mode === "generate") {
+      if (!question || !answer) {
+        return NextResponse.json(
+          { error: "Question and answer are required for FAQ generation." },
+          { status: 400 }
+        );
+      }
+    } else if (mode === "dialogue") {
+      if (!userInput || !currentFaq) {
+        return NextResponse.json(
+          { error: "User input and current FAQ are required for dialogue." },
+          { status: 400 }
+        );
+      }
+    } else {
+      return NextResponse.json(
+        { error: "Invalid mode specified." },
+        { status: 400 }
+      );
+    }
 
     if (mode === "generate") {
       // Initial FAQ Generation
@@ -18,22 +60,48 @@ export async function POST(req: NextRequest) {
         **Important Considerations:**
 
         *   **Confidentiality:** RFP responses often contain sensitive information, including customer names and proprietary details. **Do not include any customer-specific information or proprietary details in the FAQ entries.** Focus on the general capabilities and features of the Hedgehog platform.
+        
         *   **Target Audience:** The FAQs are intended for a public audience, including potential customers who may not be familiar with all technical jargon. Explain concepts clearly and avoid overly technical language when possible.
-        *   **Format:** Rephrase the RFP requirement as a question and provide a clear, concise answer. You can reference product documentation if appropriate.
+        
+        *   **Technical Accuracy:** Your primary goal is to ensure technical accuracy in the FAQ answers:
+            1. First, analyze the provided RFP Q&A content to understand the technical details
+            2. If you need to propose a broader or more general answer than what's in the RFP Q&A, you MUST verify technical accuracy
+            3. Use the search_githedgehog function ONLY when you need to verify technical details not fully covered in the RFP Q&A
+            4. Do not use web search if the RFP Q&A content provides sufficient detail for an accurate answer
+        
+        *   **Format:** Rephrase the RFP requirement as a question and provide a clear, concise answer that would be appropriate for a public FAQ about a commercial ethernet networking solution.
+        
         *   **Example:**
-            *   **RFP Requirement (T-Mobile RFP Overlay General Function OGF 1.2):** "The solution shall support a Virtual Private Cloud (VPC) like construct where an application can define their own network IPv6 address range and subnet size."
+            *   **RFP Requirement:** "The solution shall support a Virtual Private Cloud (VPC) like construct where an application can define their own network IPv6 address range and subnet size."
             *   **FAQ Question:** "Does Hedgehog support a VPC (Virtual Private Cloud) construct where an application can define their own network IPv6 address range and subnet size?"
             *   **FAQ Answer:** "Hedgehog supports a VPC (Virtual Private Cloud) abstraction where an application can use our API to provision and manage their own IP address range and subnet size. The Hedgehog VPC API includes a VPCSpec argument where applications can specify a list of IP namespaces with IPv4 address ranges. The API will support IPv6 address ranges in a CY 2025 release. Please contact Hedgehog if you want to prioritize IPv6 for an upcoming release."
 
         **Task:**
 
-        Generate a FAQ entry (question and answer) based on the following RFP question and answer:
+        Generate a FAQ entry (question and answer) based on the following RFP question and answer. Remember to:
+        1. Evaluate if this content should be generalized for a public FAQ
+        2. Only use web search if you need to verify technical details not covered in the RFP Q&A
+        3. Ensure the answer is accurate and appropriate for the target audience
 
         Question: ${question}
         Answer: ${answer}
       `;
 
       const functions = [
+        {
+          name: "search_githedgehog",
+          description: "Search githedgehog.com for technical information. Only use this when you need to verify technical details not fully covered in the RFP Q&A content.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "The search query to find relevant technical information",
+              },
+            },
+            required: ["query"],
+          },
+        },
         {
           name: "return_faq",
           description: "Returns the generated FAQ entry.",
@@ -54,36 +122,97 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: [
-          { role: "system", content: prompt },
-          { role: "user", content: "" },
-        ],
-        functions: functions,
-        function_call: { name: "return_faq" },
-        max_tokens: 250,
-        temperature: 0.7,
-      });
+      let messages = [
+        { role: "system", content: prompt },
+        { role: "user", content: "" },
+      ];
 
-      const faqArgs = response.choices[0].message.function_call?.arguments;
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: messages,
+          functions: functions,
+          function_call: "auto",
+          max_tokens: 250,
+          temperature: 0.7,
+        });
 
-      if (faqArgs) {
-        const parsedFaq = JSON.parse(faqArgs);
-        const newQuestion = parsedFaq.question;
-        const newAnswer = parsedFaq.answer;
+        const message = response.choices[0].message;
 
-        return NextResponse.json({ question: newQuestion, answer: newAnswer });
-      } else {
-        console.error("Failed to get function call arguments.");
+        // Handle potential web search request
+        if (message.function_call?.name === "search_githedgehog") {
+          const searchArgs = JSON.parse(message.function_call.arguments || "{}");
+          const searchResults = await searchGitHedgehog(searchArgs.query);
+          
+          // Add search results to conversation and get final FAQ
+          messages.push({
+            role: "assistant",
+            content: null,
+            function_call: {
+              name: "search_githedgehog",
+              arguments: message.function_call.arguments,
+            },
+          });
+          messages.push({
+            role: "function",
+            name: "search_githedgehog",
+            content: searchResults,
+          });
+
+          const finalResponse = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: messages,
+            functions: functions,
+            function_call: { name: "return_faq" },
+            max_tokens: 250,
+            temperature: 0.7,
+          });
+
+          const faqArgs = finalResponse.choices[0].message.function_call?.arguments;
+          if (!faqArgs) {
+            throw new Error("Failed to get FAQ arguments from LLM response");
+          }
+          const parsedFaq = JSON.parse(faqArgs);
+          return NextResponse.json({
+            question: parsedFaq.question,
+            answer: parsedFaq.answer,
+          });
+        } else if (message.function_call?.name === "return_faq") {
+          if (!message.function_call.arguments) {
+            throw new Error("Failed to get FAQ arguments from LLM response");
+          }
+          const parsedFaq = JSON.parse(message.function_call.arguments);
+          return NextResponse.json({
+            question: parsedFaq.question,
+            answer: parsedFaq.answer,
+          });
+        } else {
+          throw new Error("Unexpected LLM response format");
+        }
+      } catch (error) {
+        console.error("OpenAI API error:", error);
         return NextResponse.json(
-          { error: "Failed to generate FAQ." },
+          { error: "Failed to generate FAQ: " + (error as Error).message },
           { status: 500 }
         );
       }
     } else if (mode === "dialogue") {
       // Interactive Dialogue
       const functions = [
+        {
+          name: "search_githedgehog",
+          description: "Search githedgehog.com for technical information. Only use this when you need to verify technical details that come up during the dialogue.",
+          parameters: {
+            type: "object",
+            properties: {
+              query: {
+                type: "string",
+                description: "The search query to find relevant technical information",
+              },
+            },
+            required: ["query"],
+          },
+        },
         {
           name: "update_faq",
           description: "Updates the proposed FAQ entry with new values",
@@ -104,15 +233,23 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      const messages = [
+      const systemPrompt = `You are a helpful assistant that is having a conversation with a user to refine a FAQ. 
+        The current proposed FAQ is: 
+        Question: ${currentFaq.question}
+        Answer: ${currentFaq.answer}
+        
+        **Important Guidelines:**
+        1. Your primary goal is to help refine the FAQ while ensuring technical accuracy
+        2. If the user's requests or questions require verification of technical details:
+           - First, rely on your existing knowledge and the FAQ content
+           - Use the search_githedgehog function ONLY when you need to verify new technical details
+        3. When the user is satisfied with the FAQ, use the update_faq function to return the updated FAQ
+        4. Always maintain a helpful and professional tone while ensuring technical accuracy`;
+
+      let messages = [
         {
           role: "system",
-          content: `You are a helpful assistant that is having a conversation with a user to refine a FAQ. 
-            The current proposed FAQ is: 
-            Question: ${currentFaq.question}
-            Answer: ${currentFaq.answer}
-            
-            When the user is satisfied with the FAQ, use the update_faq function to return the updated FAQ.`,
+          content: systemPrompt,
         },
         {
           role: "user",
@@ -120,20 +257,62 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      const response = await openai.chat.completions.create({
-        model: "gpt-3.5-turbo",
-        messages: messages,
-        functions: functions,
-        function_call: "auto",
-        max_tokens: 250,
-        temperature: 0.7,
-      });
+      try {
+        const response = await openai.chat.completions.create({
+          model: "gpt-3.5-turbo",
+          messages: messages,
+          functions: functions,
+          function_call: "auto",
+          max_tokens: 250,
+          temperature: 0.7,
+        });
 
-      const message = response.choices[0].message;
+        const message = response.choices[0].message;
 
-      if (message.function_call) {
-        const functionName = message.function_call.name;
-        if (functionName === "update_faq") {
+        // Handle potential web search request
+        if (message.function_call?.name === "search_githedgehog") {
+          const searchArgs = JSON.parse(message.function_call.arguments || "{}");
+          const searchResults = await searchGitHedgehog(searchArgs.query);
+          
+          // Add search results to conversation and get final response
+          messages.push({
+            role: "assistant",
+            content: null,
+            function_call: {
+              name: "search_githedgehog",
+              arguments: message.function_call.arguments,
+            },
+          });
+          messages.push({
+            role: "function",
+            name: "search_githedgehog",
+            content: searchResults,
+          });
+
+          const finalResponse = await openai.chat.completions.create({
+            model: "gpt-3.5-turbo",
+            messages: messages,
+            functions: functions,
+            function_call: "auto",
+            max_tokens: 250,
+            temperature: 0.7,
+          });
+
+          const finalMessage = finalResponse.choices[0].message;
+          
+          if (finalMessage.function_call?.name === "update_faq") {
+            const functionArgs = JSON.parse(finalMessage.function_call.arguments || "{}");
+            return NextResponse.json({
+              question: functionArgs.question,
+              answer: functionArgs.answer,
+              functionCall: "update_faq",
+            });
+          } else {
+            return NextResponse.json({
+              message: finalMessage.content,
+            });
+          }
+        } else if (message.function_call?.name === "update_faq") {
           const functionArgs = JSON.parse(message.function_call.arguments || "{}");
           return NextResponse.json({
             question: functionArgs.question,
@@ -141,16 +320,16 @@ export async function POST(req: NextRequest) {
             functionCall: "update_faq",
           });
         } else {
-          console.error("Function call was made but the function does not exist");
-          return NextResponse.json(
-            { error: "Failed to process request." },
-            { status: 500 }
-          );
+          return NextResponse.json({
+            message: message.content,
+          });
         }
-      } else {
-        return NextResponse.json({
-          message: message.content
-        });
+      } catch (error) {
+        console.error("OpenAI API error:", error);
+        return NextResponse.json(
+          { error: "Failed to process dialogue: " + (error as Error).message },
+          { status: 500 }
+        );
       }
     } else {
       return NextResponse.json(
@@ -159,9 +338,9 @@ export async function POST(req: NextRequest) {
       );
     }
   } catch (error) {
-    console.error("Error calling LLM API:", error);
+    console.error("Error in LLM API:", error);
     return NextResponse.json(
-      { error: "Failed to process request." },
+      { error: "Failed to process request: " + (error as Error).message },
       { status: 500 }
     );
   }

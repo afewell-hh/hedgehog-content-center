@@ -77,24 +77,37 @@ export default function CreateFaqDetailPage() {
   }, [rfpId]);
 
   const handleGenerateFaq = async () => {
-    const llmResponse = await fetch("/api/llm", {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        mode: "generate",
-        question: rfpRecord?.question,
-        answer: rfpRecord?.answer,
-      }),
-    });
+    try {
+      const llmResponse = await fetch("/api/llm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mode: "generate",
+          question: rfpRecord?.question,
+          answer: rfpRecord?.answer,
+        }),
+      });
 
-    if (llmResponse.ok) {
-      const { question, answer } = await llmResponse.json();
-      setProposedQuestion(question);
-      setProposedAnswer(answer);
-    } else {
-      console.error("Failed to generate FAQ.");
+      if (llmResponse.ok) {
+        const data = await llmResponse.json();
+        if (data.error) {
+          console.error("API Error:", data.error);
+          // You might want to show this error to the user
+          return;
+        }
+        const { question, answer } = data;
+        setProposedQuestion(question);
+        setProposedAnswer(answer);
+      } else {
+        const errorData = await llmResponse.json().catch(() => ({ error: "Unknown error occurred" }));
+        console.error("Failed to generate FAQ:", errorData.error || llmResponse.statusText);
+        // You might want to show this error to the user
+      }
+    } catch (error) {
+      console.error("Error generating FAQ:", error);
+      // You might want to show this error to the user
     }
   };
 
