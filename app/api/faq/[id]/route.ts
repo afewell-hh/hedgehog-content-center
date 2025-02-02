@@ -7,7 +7,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
       return NextResponse.json(
         { error: "Invalid FAQ ID" },
@@ -16,7 +17,14 @@ export async function PUT(
     }
 
     const data = await request.json();
-    const { question, answer, visibility, metadata } = data;
+    const {
+      question,
+      answer,
+      visibility,
+      status,
+      notes,
+      metadata,
+    } = data;
 
     // Validate required fields
     if (!question || !answer || !visibility) {
@@ -33,8 +41,10 @@ export async function PUT(
         question,
         answer,
         visibility,
+        status,
+        notes,
         metadata,
-        updatedAt: new Date(),
+        updated_at: new Date(),
       },
     });
 
@@ -53,7 +63,8 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
-    const id = parseInt(params.id, 10);
+    const resolvedParams = await params;
+    const id = parseInt(resolvedParams.id, 10);
     if (isNaN(id)) {
       return NextResponse.json(
         { error: "Invalid FAQ ID" },
