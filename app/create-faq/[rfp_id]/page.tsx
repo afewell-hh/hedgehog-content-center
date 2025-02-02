@@ -122,6 +122,15 @@ export default function CreateFaqDetailPage() {
       { role: "user", content: userInput },
     ]);
 
+    console.log("Sending request to LLM API with:", {
+      mode: "dialogue",
+      userInput,
+      currentFaq: {
+        question: proposedQuestion,
+        answer: proposedAnswer,
+      },
+    });
+
     // Call the LLM API for interactive dialogue
     const llmResponse = await fetch("/api/llm", {
       method: "POST",
@@ -140,17 +149,29 @@ export default function CreateFaqDetailPage() {
 
     if (llmResponse.ok) {
       const responseData = await llmResponse.json();
-      if (responseData.functionCall === "update_faq") {
+      console.log("Received response from LLM API:", responseData);
+
+      if (responseData.functionCall === "update_faq" && responseData.question && responseData.answer) {
+        console.log("Updating FAQ fields with:", {
+          question: responseData.question,
+          answer: responseData.answer,
+        });
+        
+        // Update the form fields with the new FAQ content
         setProposedQuestion(responseData.question);
         setProposedAnswer(responseData.answer);
+        
+        // Add a message to dialogue history about the update
         setDialogueHistory((prev) => [
           ...prev,
           {
             role: "assistant",
-            content: "FAQ updated based on your feedback",
+            content: "I've updated the FAQ based on your feedback. Please review the changes in the question and answer fields above.",
           },
         ]);
-      } else {
+      } else if (responseData.message) {
+        console.log("Adding message to dialogue history:", responseData.message);
+        // Add the regular message to dialogue history
         setDialogueHistory((prev) => [
           ...prev,
           { role: "assistant", content: responseData.message },
@@ -158,7 +179,11 @@ export default function CreateFaqDetailPage() {
       }
       setUserInput(""); // Clear the input field after sending
     } else {
-      console.error("Failed to send message.");
+      console.error("Failed to send message:", await llmResponse.text());
+      setDialogueHistory((prev) => [
+        ...prev,
+        { role: "assistant", content: "Sorry, there was an error processing your request." },
+      ]);
     }
   };
 
@@ -347,26 +372,17 @@ export default function CreateFaqDetailPage() {
         </div>
         {/* Dialogue History */}
         <div className="mb-4">
-          <button
-            onClick={toggleDialogueHistory}
-            className="btn btn-secondary mb-2"
-          >
-            {isDialogueHistoryExpanded
-              ? "Hide Dialogue History"
-              : "Show Dialogue History"}
-          </button>
-          {isDialogueHistoryExpanded && (
-            <div className="border p-2">
-              {dialogueHistory.map((message, index) => (
-                <div key={index} className="mb-2">
-                  <strong>
-                    {message.role === "user" ? "You" : "Assistant"}
-                  :</strong>{" "}
-                  {message.content}
-                </div>
-              ))}
-            </div>
-          )}
+          <label className="block font-bold mb-2">Dialogue History:</label>
+          <div className="border p-2 h-48 overflow-y-auto bg-gray-50">
+            {dialogueHistory.map((message, index) => (
+              <div key={index} className={`mb-2 p-2 rounded ${message.role === "user" ? "bg-blue-50" : "bg-white"}`}>
+                <strong className={message.role === "user" ? "text-blue-600" : "text-green-600"}>
+                  {message.role === "user" ? "You" : "Assistant"}:
+                </strong>{" "}
+                {message.content}
+              </div>
+            ))}
+          </div>
         </div>
         {/* Visibility and Status Fields on the Same Line */}
         <div className="mb-4 flex space-x-4">

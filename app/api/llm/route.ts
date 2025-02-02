@@ -28,7 +28,7 @@ async function searchGitHedgehog(query: string): Promise<string> {
 
 export async function POST(req: NextRequest) {
   try {
-    const { mode, question, answer, userInput, currentFaq } = await req.json();
+    const { mode, question, answer, userInput, currentFaq, faqId } = await req.json();
 
     // Validate required fields
     if (mode === "generate") {
@@ -216,7 +216,7 @@ export async function POST(req: NextRequest) {
         },
         {
           name: "update_faq",
-          description: "Updates the proposed FAQ entry with new values",
+          description: "Updates the FAQ entry with new values",
           parameters: {
             type: "object",
             properties: {
@@ -234,18 +234,32 @@ export async function POST(req: NextRequest) {
         },
       ];
 
+      // Fetch current FAQ data if faqId is provided
+      let currentFaq = null;
+      if (faqId) {
+        const faqResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`);
+        if (faqResponse.ok) {
+          currentFaq = await faqResponse.json();
+        }
+      }
+
       const systemPrompt = `You are a helpful assistant that is having a conversation with a user to refine a FAQ. 
-        The current proposed FAQ is: 
-        Question: ${currentFaq.question}
-        Answer: ${currentFaq.answer}
+        The current FAQ is: 
+        Question: ${currentFaq?.question || ''}
+        Answer: ${currentFaq?.answer || ''}
         
         **Important Guidelines:**
         1. Your primary goal is to help refine the FAQ while ensuring technical accuracy
         2. If the user's requests or questions require verification of technical details:
            - First, rely on your existing knowledge and the FAQ content
            - Use the search_githedgehog function ONLY when you need to verify new technical details
-        3. When the user is satisfied with the FAQ, use the update_faq function to return the updated FAQ
-        4. Always maintain a helpful and professional tone while ensuring technical accuracy`;
+        3. When the user requests changes to the FAQ:
+           - If they want to modify the question or answer, you MUST use the update_faq function to make the changes
+           - The update_faq function will directly update the form fields in the UI
+           - Always include both the question and answer in the update_faq function call, even if only one field is being modified
+           - After using update_faq, inform the user that you've made the changes and they should review them
+        4. If you're not making changes to the FAQ content, respond with a regular message
+        5. Always maintain a helpful and professional tone while ensuring technical accuracy`;
 
       let messages = [
         {
@@ -303,24 +317,66 @@ export async function POST(req: NextRequest) {
           
           if (finalMessage.function_call?.name === "update_faq") {
             const functionArgs = JSON.parse(finalMessage.function_call.arguments || "{}");
+            console.log("LLM API: Returning update_faq response:", {
+              question: functionArgs.question,
+              answer: functionArgs.answer,
+              functionCall: "update_faq"
+            });
+
+            // Update the FAQ in the database
+            if (faqId) {
+              await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`, {
+                method: "PUT",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  question: functionArgs.question,
+                  answer: functionArgs.answer,
+                }),
+              });
+            }
+
             return NextResponse.json({
               question: functionArgs.question,
               answer: functionArgs.answer,
               functionCall: "update_faq",
             });
           } else {
+            console.log("LLM API: Returning message response:", {
+              message: finalMessage.content
+            });
             return NextResponse.json({
               message: finalMessage.content,
             });
           }
         } else if (message.function_call?.name === "update_faq") {
           const functionArgs = JSON.parse(message.function_call.arguments || "{}");
+          console.log("LLM API: Returning update_faq response:", {
+            question: functionArgs.question,
+            answer: functionArgs.answer,
+            functionCall: "update_faq"
+          });
+
+          // Update the FAQ in the database
+          if (faqId) {
+            await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`, {
+              method: "PUT",
+              headers: { "Content-Type": "application/json" },
+              body: JSON.stringify({
+                question: functionArgs.question,
+                answer: functionArgs.answer,
+              }),
+            });
+          }
+
           return NextResponse.json({
             question: functionArgs.question,
             answer: functionArgs.answer,
             functionCall: "update_faq",
           });
         } else {
+          console.log("LLM API: Returning message response:", {
+            message: message.content
+          });
           return NextResponse.json({
             message: message.content,
           });

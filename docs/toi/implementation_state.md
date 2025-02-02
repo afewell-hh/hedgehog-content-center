@@ -49,39 +49,56 @@
   - AG Grid with filtering
   - Status management (draft/review/approved/archived)
   - Visibility controls (public/private)
-  - Markdown rendering
-  - Rich text editing
-  - Internal notes
+  - Enhanced markdown editing with SimpleMDE
+    - Dynamic imports to prevent SSR issues
+    - Memoized editor options
+    - Fixed minimum heights (100px question, 200px answer)
+  - Rich text editing with TipTap
+  - Internal notes field
   - LLM-assisted content refinement
-  - Related FAQ display
+  - Related FAQ display with AG Grid
+    - Markdown rendering for answers
+    - Clickable ID links
+    - Pagination support
 - Location:
   - List view: `/app/faq/page.tsx`
   - Detail view: `/app/faq/[id]/page.tsx`
-  - Editor component: `/app/faq/[id]/FaqEditor.tsx`
+  - Editor component: `/app/components/FaqEditor.tsx`
   - LLM component: `/app/components/LlmInteraction.tsx`
   - Related FAQs component: `/app/components/RelatedFaqs.tsx`
-  - API: `/app/api/faq/[id]/route.ts`
-- Dependencies: AG Grid, Prisma, PostgreSQL, OpenAI API, TipTap Editor
+  - API endpoints:
+    - `/api/faq/[id]`: Single FAQ operations
+    - `/api/faq/related/[id]`: Related FAQs
+    - `/api/llm`: LLM interactions
+- Dependencies: AG Grid, Prisma, PostgreSQL, OpenAI API, SimpleMDE, TipTap Editor
 
 ### LLM Integration
 
-### FAQ Generation API
+#### FAQ Generation API
 - **Endpoint**: `/api/llm`
 - **Method**: POST
 - **Modes**: 
   - `generate`: Creates new FAQ entries from RFP Q&A content
   - `dialogue`: Supports interactive refinement of FAQ entries
+- **Features**:
+  - Enhanced error handling at both client and server levels
+  - Input validation and structured error responses
+  - Improved system prompts for better FAQ generation
+  - Environment variable validation
 
-### Web Search Integration
-- Integrated DuckDuckGo search functionality to verify technical details
-- Search scope limited to `githedgehog.com` domain
+#### Web Search Integration
+- Integrated DuckDuckGo search functionality
+- Site-specific search on githedgehog.com
 - Results limited to top 3 most relevant matches
-- Search is triggered only when LLM needs to verify technical details not covered in RFP Q&A
+- Technical verification of FAQ content
+- Error handling for failed searches
 
-### Error Handling
-- Comprehensive error handling at both client and server levels
-- Detailed error logging and user-friendly error messages
-- Validation for required fields and API responses
+#### Error Handling
+- Comprehensive try-catch blocks for API calls
+- Detailed error logging and user feedback
+- Input validation for all endpoints
+- Structured error responses
+- Environment variable validation
 - Graceful handling of OpenAI API errors
 
 ### Data Models
@@ -96,7 +113,7 @@
   status: string,       // draft/review/approved/archived
   notes: string | null, // Internal notes
   metadata: any,
-  rfpQaId: number | null,
+  rfpQaId: number,     // Relation to RFP Q&A
   created_at: DateTime,
   updated_at: DateTime
 }

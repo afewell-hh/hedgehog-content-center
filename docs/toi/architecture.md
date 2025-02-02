@@ -34,13 +34,27 @@ The Hedgehog Content Center is a web application designed to manage and transfor
   - `/app/create-faq/`: FAQ generation workflow
     - Record selection view with AG Grid
     - Detail view with LLM interaction
-  - `/app/faq/`: FAQ browsing interface
-- Dependencies: Next.js, AG Grid, TailwindCSS, SimpleMDE
+  - `/app/faq/`: FAQ browsing and management interface
+    - List view with AG Grid
+    - Detail view with SimpleMDE and TipTap editors
+    - Related FAQs display
+- Dependencies: 
+  - Next.js
+  - AG Grid
+  - TailwindCSS
+  - SimpleMDE (dynamic import)
+  - TipTap Editor
+  - React Markdown
 - File locations: 
   - `/app/rfp-qa/page.tsx`: Main RFP Q&A listing
   - `/app/create-faq/page.tsx`: FAQ creation entry point
   - `/app/create-faq/[rfp_id]/page.tsx`: FAQ generation interface
   - `/app/faq/page.tsx`: FAQ browsing interface
+  - `/app/faq/[id]/page.tsx`: FAQ detail view
+  - `/app/components/`: Shared components
+    - `FaqEditor.tsx`: FAQ editing interface
+    - `LlmInteraction.tsx`: LLM chat interface
+    - `RelatedFaqs.tsx`: Related FAQs grid
 - Update triggers: User interactions, API responses, LLM completions
 
 ### Backend API
@@ -48,10 +62,16 @@ The Hedgehog Content Center is a web application designed to manage and transfor
 - Key interfaces: 
   - `/api/rfp-qa/`: RFP Q&A CRUD operations
   - `/api/faq/`: FAQ CRUD operations
+    - `[id]`: Single FAQ operations
+    - `related/[id]`: Related FAQs lookup
   - `/api/llm/`: LLM interaction endpoint
+    - Generation mode
+    - Dialogue mode
+    - Web search integration
 - Dependencies: 
   - PostgreSQL: Data persistence
   - OpenAI API: LLM integration
+  - DuckDuckGo: Web search
   - Prisma: ORM layer
 - File locations: `/app/api/`
 - Update triggers: Frontend requests, database changes
@@ -61,11 +81,17 @@ The Hedgehog Content Center is a web application designed to manage and transfor
 - Components:
   - Generation mode: Creates initial FAQ from RFP content
   - Dialogue mode: Interactive refinement of proposed FAQ
+  - Web search: Technical verification using githedgehog.com
 - Implementation:
   - Model: GPT-3.5-turbo
   - Function calling for structured outputs
   - System prompts for maintaining context
   - Temperature: 0.7 for balanced creativity
+  - Error handling:
+    - Input validation
+    - Structured error responses
+    - Environment variable validation
+    - User-friendly error messages
 - File location: `/app/api/llm/route.ts`
 
 ### Database (PostgreSQL)
@@ -73,6 +99,9 @@ The Hedgehog Content Center is a web application designed to manage and transfor
 - Key tables: 
   - rfp_qa: Stores RFP questions and answers
   - faq: Stores generated FAQs with metadata
+    - Added relation to rfp_qa table
+    - Enhanced status tracking
+    - Added notes field
 - File locations: `/prisma/`: Schema and migrations
 - Update triggers: API operations
 
