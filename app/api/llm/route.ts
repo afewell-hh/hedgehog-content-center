@@ -234,19 +234,25 @@ export async function POST(req: NextRequest) {
         },
       ];
 
-      // Fetch current FAQ data if faqId is provided
-      let currentFaq = null;
-      if (faqId) {
-        const faqResponse = await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`);
-        if (faqResponse.ok) {
-          currentFaq = await faqResponse.json();
+      // If currentFaq is not provided but faqId is, fetch the FAQ data
+      let faqData = currentFaq;
+      if (!faqData && faqId) {
+        try {
+          // Use absolute URL for server-side fetch
+          const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+          const faqResponse = await fetch(`${baseUrl}/api/faq/${faqId}`);
+          if (faqResponse.ok) {
+            faqData = await faqResponse.json();
+          }
+        } catch (error) {
+          console.error('Error fetching FAQ data:', error);
         }
       }
 
       const systemPrompt = `You are a helpful assistant that is having a conversation with a user to refine a FAQ. 
         The current FAQ is: 
-        Question: ${currentFaq?.question || ''}
-        Answer: ${currentFaq?.answer || ''}
+        Question: ${faqData?.question || currentFaq?.question || ''}
+        Answer: ${faqData?.answer || currentFaq?.answer || ''}
         
         **Important Guidelines:**
         1. Your primary goal is to help refine the FAQ while ensuring technical accuracy
@@ -325,7 +331,8 @@ export async function POST(req: NextRequest) {
 
             // Update the FAQ in the database
             if (faqId) {
-              await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`, {
+              const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+              await fetch(`${baseUrl}/api/faq/${faqId}`, {
                 method: "PUT",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({
@@ -358,7 +365,8 @@ export async function POST(req: NextRequest) {
 
           // Update the FAQ in the database
           if (faqId) {
-            await fetch(`${process.env.NEXT_PUBLIC_BASE_URL || ''}/api/faq/${faqId}`, {
+            const baseUrl = process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000';
+            await fetch(`${baseUrl}/api/faq/${faqId}`, {
               method: "PUT",
               headers: { "Content-Type": "application/json" },
               body: JSON.stringify({

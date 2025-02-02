@@ -1,12 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useState, useMemo, use } from "react";
 import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
-import { use } from "react";
-import FaqEditor from "./FaqEditor";
-import LlmInteraction from "../../components/LlmInteraction";
-import RelatedFaqs from "../../components/RelatedFaqs";
+import dynamic from "next/dynamic";
+import Markdown from "react-markdown";
+import remarkGfm from "remark-gfm";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
+
+// Import SimpleMDE dynamically with SSR disabled
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false,
+});
+
+ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
 interface FaqDetailProps {
   params: { id: string };
@@ -28,6 +36,8 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
   const [faqItem, setFaqItem] = useState<Faq | null>(null);
   const [relatedFaqs, setRelatedFaqs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const [dialogueHistory, setDialogueHistory] = useState<{ role: string; content: string }[]>([]);
+  const [userInput, setUserInput] = useState("");
   const resolvedParams = use(params);
 
   useEffect(() => {
@@ -69,25 +79,105 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
     fetchFaqData();
   }, [resolvedParams.id]);
 
-  if (isLoading) {
-    return (
-      <div className="container p-4">
-        <div className="text-center">Loading...</div>
-      </div>
-    );
-  }
+  const handleSendMessage = async () => {
+    if (!userInput.trim() || !faqItem) return;
 
-  if (!faqItem) {
-    return notFound();
-  }
+    setDialogueHistory([...dialogueHistory, { role: "user", content: userInput }]);
 
-  const handleFaqUpdate = (updatedFaq: { question: string; answer: string }) => {
-    setFaqItem(prev => prev ? { ...prev, ...updatedFaq } : null);
+    try {
+      const llmResponse = await fetch("/api/llm", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          mode: "dialogue",
+          userInput,
+          currentFaq: {
+            question: faqItem.question,
+            answer: faqItem.answer,
+          },
+          faqId: faqItem.id,
+        }),
+      });
+
+      if (llmResponse.ok) {
+        const responseData = await llmResponse.json();
+        
+        if (responseData.functionCall === "update_faq" && responseData.question && responseData.answer) {
+          // Update the FAQ content
+          setFaqItem(prev => prev ? {
+            ...prev,
+            question: responseData.question,
+            answer: responseData.answer
+          } : null);
+          
+          // Save the changes to the database
+          await fetch(`/api/faq/${faqItem.id}`, {
+            method: "PUT",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              question: responseData.question,
+              answer: responseData.answer,
+              visibility: faqItem.visibility,
+              status: faqItem.status,
+              notes: faqItem.notes
+            }),
+          });
+          
+          setDialogueHistory(prev => [...prev, {
+            role: "assistant",
+            content: "I've updated the FAQ based on your feedback. Please review the changes above.",
+          }]);
+        } else if (responseData.message) {
+          setDialogueHistory(prev => [...prev, {
+            role: "assistant",
+            content: responseData.message,
+          }]);
+        }
+      } else {
+        throw new Error('Failed to get LLM response');
+      }
+    } catch (error) {
+      console.error('Error in LLM interaction:', error);
+      setDialogueHistory(prev => [...prev, {
+        role: "assistant",
+        content: "Sorry, I encountered an error processing your request.",
+      }]);
+    }
+
+    setUserInput("");
+  };
+
+  const handleSaveFaq = async () => {
+    if (!faqItem) return;
+
+    try {
+      const response = await fetch(`/api/faq/${faqItem.id}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          question: faqItem.question,
+          answer: faqItem.answer,
+          visibility: faqItem.visibility,
+          status: faqItem.status,
+          notes: faqItem.notes,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to save FAQ');
+      }
+    } catch (error) {
+      console.error('Error saving FAQ:', error);
+    }
   };
 
   const handlePreviousRecord = async () => {
     try {
-      const response = await fetch(`/api/faq/${faqItem.id}/navigation`);
+      const response = await fetch(`/api/faq/${faqItem?.id}/navigation`);
       if (response.ok) {
         const data = await response.json();
         if (data.prevId) {
@@ -101,7 +191,7 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
 
   const handleNextRecord = async () => {
     try {
-      const response = await fetch(`/api/faq/${faqItem.id}/navigation`);
+      const response = await fetch(`/api/faq/${faqItem?.id}/navigation`);
       if (response.ok) {
         const data = await response.json();
         if (data.nextId) {
@@ -113,78 +203,159 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
     }
   };
 
+  const relatedFaqColumnDefs = useMemo<ColDef[]>(() => [
+    {
+      field: "id",
+      headerName: "ID",
+      width: 100,
+    },
+    {
+      field: "question",
+      headerName: "Question",
+      flex: 2,
+      cellRenderer: (params: any) => (
+        <Link href={`/faq/${params.data.id}`} className="text-orange-600 hover:text-orange-700">
+          {params.value}
+        </Link>
+      ),
+    },
+    {
+      field: "status",
+      headerName: "Status",
+      width: 120,
+    },
+    {
+      field: "visibility",
+      headerName: "Visibility",
+      width: 120,
+    },
+  ], []);
+
+  if (isLoading) {
+    return (
+      <div className="container p-4">
+        <div className="text-center">Loading...</div>
+      </div>
+    );
+  }
+
+  if (!faqItem) {
+    return notFound();
+  }
+
   return (
-    <div className="container p-4">
-      <h1 className="text-3xl font-bold text-primary mb-4">
-        Edit FAQ #{faqItem.id}
-      </h1>
+    <div className="container mx-auto p-4 max-w-4xl">
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold">
+          Edit FAQ #{faqItem.id}
+        </h1>
+      </div>
 
       {/* Previous/Next Navigation */}
-      <div className="mb-4">
+      <div className="mb-6 flex space-x-2">
         <button
           onClick={handlePreviousRecord}
-          className="btn btn-secondary mr-2"
+          className="btn btn-secondary bg-orange-600 text-white hover:bg-orange-700"
         >
           Previous Record
         </button>
         <button
           onClick={handleNextRecord}
-          className="btn btn-secondary"
+          className="btn btn-secondary bg-orange-600 text-white hover:bg-orange-700"
         >
           Next Record
         </button>
       </div>
 
-      <div className="card">
-        <div className="mb-4">
-          <label htmlFor="question" className="block font-bold">
+      {/* Main Form Section */}
+      <div className="bg-white shadow-lg rounded-lg p-6 space-y-6">
+        {/* Question Field */}
+        <div>
+          <label className="block text-lg font-semibold mb-2">
             Question:
           </label>
-          <div className="border rounded-md overflow-hidden">
-            <FaqEditor
-              id="question"
-              value={faqItem.question}
-              onChange={(value) => setFaqItem(prev => prev ? { ...prev, question: value } : null)}
-            />
-          </div>
+          <SimpleMDE
+            value={faqItem.question}
+            onChange={(value) => setFaqItem(prev => prev ? { ...prev, question: value } : null)}
+            options={{
+              spellChecker: false,
+              status: false,
+            }}
+          />
         </div>
 
-        <div className="mb-4">
-          <label htmlFor="answer" className="block font-bold">
+        {/* Answer Field */}
+        <div>
+          <label className="block text-lg font-semibold mb-2">
             Answer:
           </label>
-          <div className="border rounded-md overflow-hidden">
-            <FaqEditor
-              id="answer"
-              value={faqItem.answer}
-              onChange={(value) => setFaqItem(prev => prev ? { ...prev, answer: value } : null)}
+          <SimpleMDE
+            value={faqItem.answer}
+            onChange={(value) => setFaqItem(prev => prev ? { ...prev, answer: value } : null)}
+            options={{
+              spellChecker: false,
+              status: false,
+            }}
+          />
+        </div>
+
+        {/* LLM Interaction */}
+        <div>
+          {/* Input Area */}
+          <div className="flex space-x-2 mb-4">
+            <input
+              type="text"
+              value={userInput}
+              onChange={(e) => setUserInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Enter") {
+                  handleSendMessage();
+                  e.preventDefault();
+                }
+              }}
+              placeholder="Ask me to help improve the FAQ..."
+              className="flex-1 border rounded-md p-2"
             />
+            <button
+              onClick={handleSendMessage}
+              className="btn btn-primary bg-orange-600 text-white hover:bg-orange-700 px-4 py-2 rounded-md"
+            >
+              Send
+            </button>
+          </div>
+
+          {/* Dialogue History */}
+          <div className="border rounded-lg p-4 bg-gray-50 h-48 overflow-y-auto mb-4">
+            {dialogueHistory.length === 0 ? (
+              <p className="text-gray-500">No messages yet. Start a conversation!</p>
+            ) : (
+              dialogueHistory.map((message, index) => (
+                <div
+                  key={index}
+                  className={`mb-2 p-2 rounded ${
+                    message.role === "user" ? "bg-blue-50" : "bg-white"
+                  }`}
+                >
+                  <strong className={message.role === "user" ? "text-blue-600" : "text-green-600"}>
+                    {message.role === "user" ? "You" : "Assistant"}:
+                  </strong>{" "}
+                  {message.content}
+                </div>
+              ))
+            )}
           </div>
         </div>
 
-        {/* LLM Interaction Field */}
-        <div className="mb-4">
-          <label htmlFor="userInput" className="block font-bold">
-            LLM Interaction:
-          </label>
-          <div className="flex">
-            <LlmInteraction
-              faqId={faqItem.id}
-            />
-          </div>
-        </div>
-
-        {/* Visibility and Status Fields */}
-        <div className="mb-4 flex space-x-4">
+        {/* Metadata Fields */}
+        <div className="grid grid-cols-2 gap-6">
           <div>
-            <label htmlFor="visibility" className="block font-bold">
+            <label className="block text-sm font-semibold mb-2">
               Visibility:
             </label>
             <select
-              id="visibility"
               value={faqItem.visibility}
               onChange={(e) => setFaqItem(prev => prev ? { ...prev, visibility: e.target.value } : null)}
-              className="border p-2"
+              className="w-full border rounded-md p-2"
             >
               <option value="private">Private</option>
               <option value="public">Public</option>
@@ -197,14 +368,13 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
             </select>
           </div>
           <div>
-            <label htmlFor="status" className="block font-bold">
+            <label className="block text-sm font-semibold mb-2">
               Status:
             </label>
             <select
-              id="status"
-              value={faqItem.status || "draft"}
+              value={faqItem.status}
               onChange={(e) => setFaqItem(prev => prev ? { ...prev, status: e.target.value } : null)}
-              className="border p-2"
+              className="w-full border rounded-md p-2"
             >
               <option value="draft">Draft</option>
               <option value="review">Review</option>
@@ -214,24 +384,23 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
           </div>
         </div>
 
-        {/* Notes Field */}
-        <div className="mb-4">
-          <label htmlFor="notes" className="block font-bold">
+        <div>
+          <label className="block text-sm font-semibold mb-2">
             Notes:
           </label>
           <textarea
-            id="notes"
             value={faqItem.notes || ""}
             onChange={(e) => setFaqItem(prev => prev ? { ...prev, notes: e.target.value } : null)}
-            className="border p-2 w-full h-32"
+            className="w-full border rounded-md p-2 h-32"
+            placeholder="Add any notes about this FAQ..."
           />
         </div>
 
         {/* Save Button */}
         <div className="flex justify-end">
           <button
-            onClick={() => handleFaqUpdate({ question: faqItem.question, answer: faqItem.answer })}
-            className="btn btn-primary"
+            onClick={handleSaveFaq}
+            className="btn btn-primary bg-orange-600 text-white hover:bg-orange-700 px-6 py-2 rounded-md"
           >
             Save Changes
           </button>
@@ -239,11 +408,19 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
       </div>
 
       {/* Related FAQs Section */}
-      {faqItem.rfpQa && (
+      {faqItem.rfpQa && relatedFaqs.length > 0 && (
         <div className="mt-8">
-          <div className="card p-6">
-            <h2 className="text-xl font-semibold mb-4">Related FAQs</h2>
-            <RelatedFaqs faqs={relatedFaqs} />
+          <h2 className="text-2xl font-bold mb-4">Related FAQs</h2>
+          <div className="ag-theme-alpine h-[300px] w-full">
+            <AgGridReact
+              rowData={relatedFaqs}
+              columnDefs={relatedFaqColumnDefs}
+              domLayout="autoHeight"
+              defaultColDef={{
+                sortable: true,
+                resizable: true,
+              }}
+            />
           </div>
         </div>
       )}
