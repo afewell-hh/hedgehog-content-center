@@ -1,9 +1,12 @@
 "use client";
 
-import { useState, useCallback } from "react";
+import { useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { useEditor, EditorContent } from "@tiptap/react";
-import StarterKit from "@tiptap/starter-kit";
+import dynamic from "next/dynamic";
+
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false,
+});
 
 interface FaqEditorProps {
   id: number;
@@ -26,133 +29,148 @@ export default function FaqEditor({
 }: FaqEditorProps) {
   const router = useRouter();
   const [question, setQuestion] = useState(initialQuestion);
+  const [answer, setAnswer] = useState(initialAnswer);
   const [visibility, setVisibility] = useState(initialVisibility);
   const [status, setStatus] = useState(initialStatus);
   const [notes, setNotes] = useState(initialNotes || '');
   const [isSaving, setIsSaving] = useState(false);
 
-  const editor = useEditor({
-    extensions: [StarterKit],
-    content: initialAnswer,
-    editorProps: {
-      attributes: {
-        class: 'prose prose-sm sm:prose lg:prose-lg xl:prose-2xl focus:outline-none',
-      },
-    },
-  });
+  // Memoize editor options
+  const editorOptions = useMemo(
+    () => ({
+      autofocus: false,
+      spellChecker: false,
+      status: false,
+      minHeight: "100px",
+    }),
+    []
+  );
+
+  const answerEditorOptions = useMemo(
+    () => ({
+      ...editorOptions,
+      minHeight: "200px",
+    }),
+    [editorOptions]
+  );
 
   const handleSave = useCallback(async () => {
     if (isSaving) return;
     setIsSaving(true);
     try {
-      const newAnswer = editor?.getHTML() || "";
       const res = await fetch(`/api/faq/${id}`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ 
-          question, 
-          answer: newAnswer,
+        body: JSON.stringify({
+          question,
+          answer,
+          metadata,
           visibility,
           status,
           notes,
-          metadata, // Keep existing metadata
         }),
       });
-      
+
       if (!res.ok) {
-        const error = await res.text();
-        throw new Error(error);
+        throw new Error("Failed to save FAQ");
       }
-      
-      router.refresh(); // refresh the page to get new data
+
+      router.refresh();
     } catch (error) {
-      console.error('Error saving FAQ:', error);
-      alert("Error updating FAQ: " + (error as Error).message);
+      console.error("Error saving FAQ:", error);
     } finally {
       setIsSaving(false);
     }
-  }, [editor, question, visibility, status, notes, metadata, id, router, isSaving]);
+  }, [id, question, answer, metadata, visibility, status, notes, router, isSaving]);
 
   return (
-    <div className="space-y-6">
+    <form onSubmit={(e) => { e.preventDefault(); handleSave(); }} className="space-y-6">
       <div>
-        <label className="block font-semibold mb-2" htmlFor="question">
-          Question:
+        <label htmlFor="question" className="block text-sm font-medium text-gray-700 mb-2">
+          Question
         </label>
-        <input
-          id="question"
-          className="w-full px-3 py-2 border rounded-md"
-          value={question}
-          onChange={(e) => setQuestion(e.target.value)}
-        />
-      </div>
-
-      <div>
-        <label className="block font-semibold mb-2" htmlFor="answer">
-          Answer:
-        </label>
-        <div className="border rounded-md p-4 bg-white">
-          {editor && <EditorContent editor={editor} />}
+        <div className="border rounded-md overflow-hidden">
+          <SimpleMDE
+            id="question"
+            value={question}
+            onChange={setQuestion}
+            options={editorOptions}
+          />
         </div>
       </div>
 
       <div>
-        <label className="block font-semibold mb-2" htmlFor="visibility">
-          Visibility:
+        <label htmlFor="answer" className="block text-sm font-medium text-gray-700 mb-2">
+          Answer
         </label>
-        <select
-          id="visibility"
-          className="w-full px-3 py-2 border rounded-md"
-          value={visibility}
-          onChange={(e) => setVisibility(e.target.value)}
-        >
-          <option value="public">Public</option>
-          <option value="private">Private</option>
-        </select>
+        <div className="border rounded-md overflow-hidden">
+          <SimpleMDE
+            id="answer"
+            value={answer}
+            onChange={setAnswer}
+            options={answerEditorOptions}
+          />
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+        <div>
+          <label htmlFor="visibility" className="block text-sm font-medium text-gray-700 mb-2">
+            Visibility
+          </label>
+          <select
+            id="visibility"
+            value={visibility}
+            onChange={(e) => setVisibility(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="private">Private</option>
+            <option value="public">Public</option>
+          </select>
+        </div>
+
+        <div>
+          <label htmlFor="status" className="block text-sm font-medium text-gray-700 mb-2">
+            Status
+          </label>
+          <select
+            id="status"
+            value={status}
+            onChange={(e) => setStatus(e.target.value)}
+            className="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-indigo-500 focus:border-indigo-500 sm:text-sm rounded-md"
+          >
+            <option value="draft">Draft</option>
+            <option value="review">Review</option>
+            <option value="approved">Approved</option>
+            <option value="archived">Archived</option>
+          </select>
+        </div>
       </div>
 
       <div>
-        <label className="block font-semibold mb-2" htmlFor="status">
-          Status:
-        </label>
-        <select
-          id="status"
-          className="w-full px-3 py-2 border rounded-md"
-          value={status}
-          onChange={(e) => setStatus(e.target.value)}
-        >
-          <option value="draft">Draft</option>
-          <option value="review">Review</option>
-          <option value="approved">Approved</option>
-          <option value="archived">Archived</option>
-        </select>
-      </div>
-
-      <div>
-        <label className="block font-semibold mb-2" htmlFor="notes">
-          Notes:
+        <label htmlFor="notes" className="block text-sm font-medium text-gray-700 mb-2">
+          Notes
         </label>
         <textarea
           id="notes"
-          className="w-full px-3 py-2 border rounded-md"
           value={notes}
           onChange={(e) => setNotes(e.target.value)}
           rows={4}
-          placeholder="Add any internal notes here..."
+          className="shadow-sm focus:ring-indigo-500 focus:border-indigo-500 mt-1 block w-full sm:text-sm border border-gray-300 rounded-md"
         />
       </div>
 
-      <button
-        onClick={handleSave}
-        disabled={isSaving}
-        className={`w-full px-4 py-2 text-white rounded-md ${
-          isSaving
-            ? "bg-gray-400 cursor-not-allowed"
-            : "bg-blue-500 hover:bg-blue-600"
-        }`}
-      >
-        {isSaving ? "Saving..." : "Save Changes"}
-      </button>
-    </div>
+      <div className="flex justify-end">
+        <button
+          type="submit"
+          disabled={isSaving}
+          className={`inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500 ${
+            isSaving ? 'opacity-50 cursor-not-allowed' : ''
+          }`}
+        >
+          {isSaving ? 'Saving...' : 'Save Changes'}
+        </button>
+      </div>
+    </form>
   );
 }
