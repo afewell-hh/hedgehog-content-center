@@ -1,5 +1,6 @@
 // app/layout.tsx
 import "./globals.css";
+import "easymde/dist/easymde.min.css";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";

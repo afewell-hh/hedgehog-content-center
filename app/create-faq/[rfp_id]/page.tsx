@@ -1,14 +1,18 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useRouter, useParams } from "next/navigation";
-import SimpleMDE from "react-simplemde-editor";
-import "easymde/dist/easymde.min.css";
-import { AgGridReact } from "ag-grid-react";
-import { ColDef, ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
+import dynamic from "next/dynamic";
 import Link from "next/link";
 import Markdown from "react-markdown";
 import remarkGfm from "remark-gfm";
+import { AgGridReact } from "ag-grid-react";
+import { ColDef, ModuleRegistry, ClientSideRowModelModule } from "ag-grid-community";
+
+// Import SimpleMDE dynamically with SSR disabled
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false,
+});
 
 ModuleRegistry.registerModules([ClientSideRowModelModule]);
 
@@ -232,6 +236,17 @@ export default function CreateFaqDetailPage() {
     },
   ];
 
+  // Memoize the editor options
+  const editorOptions = useMemo(
+    () => ({
+      autofocus: false,
+      spellChecker: false,
+      status: false,
+      minHeight: "200px",
+    }),
+    []
+  );
+
   if (!rfpRecord) {
     return <div>Loading...</div>;
   }
@@ -294,14 +309,14 @@ export default function CreateFaqDetailPage() {
           <label htmlFor="answer" className="block font-bold">
             Answer:
           </label>
-          <SimpleMDE
-            value={proposedAnswer}
-            onChange={setProposedAnswer}
-            options={{
-              autofocus: false,
-              spellChecker: false,
-            }}
-          />
+          <div className="border rounded-md overflow-hidden">
+            <SimpleMDE
+              id="answer"
+              value={proposedAnswer}
+              onChange={setProposedAnswer}
+              options={editorOptions}
+            />
+          </div>
         </div>
         {/* LLM Interaction Field */}
         <div className="mb-4">
