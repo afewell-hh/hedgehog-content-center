@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import { notFound, useRouter } from "next/navigation";
 import Link from "next/link";
+import { use } from "react";
 import FaqEditor from "./FaqEditor";
 import LlmInteraction from "../../components/LlmInteraction";
 import RelatedFaqs from "../../components/RelatedFaqs";
@@ -27,11 +28,12 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
   const [faqItem, setFaqItem] = useState<Faq | null>(null);
   const [relatedFaqs, setRelatedFaqs] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
+  const resolvedParams = use(params);
 
   useEffect(() => {
     const fetchFaqData = async () => {
       try {
-        const id = parseInt(params.id, 10);
+        const id = parseInt(resolvedParams.id, 10);
         if (isNaN(id)) {
           notFound();
           return;
@@ -65,7 +67,7 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
     };
 
     fetchFaqData();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   if (isLoading) {
     return (
@@ -115,7 +117,6 @@ export default function FaqDetailPage({ params }: FaqDetailProps) {
             </p>
             <LlmInteraction
               faqId={faqItem.id}
-              onUpdate={handleFaqUpdate}
             />
           </div>
         </div>

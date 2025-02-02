@@ -4,10 +4,9 @@ import { useState } from "react";
 
 interface LlmInteractionProps {
   faqId: number;
-  onUpdate: (updatedFaq: { question: string; answer: string }) => void;
 }
 
-export default function LlmInteraction({ faqId, onUpdate }: LlmInteractionProps) {
+export default function LlmInteraction({ faqId }: LlmInteractionProps) {
   const [userInput, setUserInput] = useState("");
   const [dialogueHistory, setDialogueHistory] = useState<{ role: string; content: string }[]>([]);
   const [isExpanded, setIsExpanded] = useState(false);
@@ -36,24 +35,12 @@ export default function LlmInteraction({ faqId, onUpdate }: LlmInteractionProps)
       }
 
       const data = await response.json();
-
-      // Handle FAQ update if the LLM suggests changes
-      if (data.functionCall === "update_faq" && data.question && data.answer) {
-        onUpdate({
-          question: data.question,
-          answer: data.answer,
-        });
-        setDialogueHistory((prev) => [
-          ...prev,
-          { role: "assistant", content: "FAQ updated based on your feedback." },
-        ]);
-      } else {
-        // Add assistant's response to dialogue history
-        setDialogueHistory((prev) => [
-          ...prev,
-          { role: "assistant", content: data.message },
-        ]);
-      }
+      
+      // Add assistant's response to dialogue history
+      setDialogueHistory((prev) => [
+        ...prev,
+        { role: "assistant", content: data.message },
+      ]);
     } catch (error) {
       console.error("Error in LLM interaction:", error);
       setDialogueHistory((prev) => [
@@ -99,12 +86,12 @@ export default function LlmInteraction({ faqId, onUpdate }: LlmInteractionProps)
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
           onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-          placeholder="Ask me anything about this FAQ..."
-          className="flex-1 p-2 border rounded-lg"
+          placeholder="Type your message..."
+          className="flex-1 px-3 py-2 border rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500"
         />
         <button
           onClick={handleSendMessage}
-          className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+          className="px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500"
         >
           Send
         </button>
