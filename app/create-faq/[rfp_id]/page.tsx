@@ -322,13 +322,20 @@ export default function CreateFaqDetailPage() {
           <label htmlFor="question" className="block font-bold">
             Question:
           </label>
-          <input
-            type="text"
-            id="question"
-            value={proposedQuestion}
-            onChange={(e) => setProposedQuestion(e.target.value)}
-            className="border p-2 w-full"
-          />
+          <div className="border rounded-md overflow-hidden">
+            <SimpleMDE
+              id="question"
+              value={proposedQuestion}
+              onChange={setProposedQuestion}
+              options={{
+                spellChecker: false,
+                status: false,
+                minHeight: "100px",
+                maxHeight: "200px",
+                toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+              }}
+            />
+          </div>
         </div>
         <div className="mb-4">
           <label htmlFor="answer" className="block font-bold">
