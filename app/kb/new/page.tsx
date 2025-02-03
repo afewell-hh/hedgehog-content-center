@@ -142,7 +142,12 @@ export default function CreateKbEntryPage() {
         </div>
       )}
 
-      <form onSubmit={handleSubmit} className="space-y-6">
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        autoComplete="off"
+        data-lpignore="true"
+      >
         <div className="grid grid-cols-2 gap-6">
           <div className="space-y-4">
             <div>
