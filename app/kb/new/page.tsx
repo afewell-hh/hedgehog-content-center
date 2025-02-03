@@ -4,7 +4,8 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import KbLlmInteraction from '@/app/components/KbLlmInteraction';
-import { usePrompts } from '@/app/hooks/usePrompts';
+import PromptPanel from '@/app/components/PromptPanel';
+import { usePrompts, defaultPrompts } from '@/app/hooks/usePrompts';
 import 'easymde/dist/easymde.min.css';
 
 // Dynamic import of SimpleMDE to prevent SSR issues
@@ -48,12 +49,23 @@ const initialFormData: FormData = {
   metadata: {},
 };
 
+interface PromptPanelState {
+  isOpen: boolean;
+  type: 'newEntry';
+  prompt: string;
+}
+
 export default function CreateKbEntryPage() {
   const router = useRouter();
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
-  const { prompts } = usePrompts();
+  const { prompts, updatePrompt } = usePrompts();
+  const [promptPanel, setPromptPanel] = useState<PromptPanelState>({
+    isOpen: false,
+    type: 'newEntry',
+    prompt: prompts.newEntry || defaultPrompts.newEntry
+  });
 
   const categories = [
     'Glossary',
@@ -132,6 +144,23 @@ export default function CreateKbEntryPage() {
       setError(err instanceof Error ? err.message : 'An error occurred');
       setSaving(false);
     }
+  };
+
+  const handleOpenPrompt = () => {
+    setPromptPanel({
+      isOpen: true,
+      type: 'newEntry',
+      prompt: prompts.newEntry || defaultPrompts.newEntry
+    });
+  };
+
+  const handleClosePrompt = () => {
+    setPromptPanel(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleUpdatePrompt = (newPrompt: string) => {
+    updatePrompt('newEntry', newPrompt);
+    setPromptPanel(prev => ({ ...prev, prompt: newPrompt }));
   };
 
   return (
@@ -336,13 +365,21 @@ export default function CreateKbEntryPage() {
                   
                   {/* Interactive Chat Section */}
                   <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <h2 className="text-lg font-semibold mb-2">Interactive Assistant</h2>
+                    <div className="flex justify-between items-center mb-2">
+                      <h2 className="text-lg font-semibold">Interactive Assistant</h2>
+                      <button
+                        onClick={handleOpenPrompt}
+                        className="text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        View/Edit Prompt
+                      </button>
+                    </div>
                     <p className="text-sm text-gray-600 mb-4">
                       Get help creating your KB entry. The assistant will guide you through the process
                       and ensure your content meets our quality standards.
                     </p>
                     <KbLlmInteraction
-                      prompt={prompts.newEntry}
+                      prompt={promptPanel.prompt}
                       title={formData.article_title}
                       subtitle={formData.article_subtitle}
                       body={formData.article_body}
@@ -362,6 +399,15 @@ export default function CreateKbEntryPage() {
           </div>
         </div>
 
+        {/* Prompt Panel */}
+        <PromptPanel
+          isOpen={promptPanel.isOpen}
+          onClose={handleClosePrompt}
+          prompt={promptPanel.prompt}
+          onUpdate={handleUpdatePrompt}
+          type={promptPanel.type}
+        />
+
         <hr className="my-8 border-t border-gray-200" />
         <div className="flex justify-end gap-4">
           <button
@@ -378,7 +424,7 @@ export default function CreateKbEntryPage() {
           >
             {saving ? (
               <>
-                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
