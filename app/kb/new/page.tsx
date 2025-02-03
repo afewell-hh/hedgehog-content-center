@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
+import KbLlmInteraction from '@/app/components/KbLlmInteraction';
 import 'easymde/dist/easymde.min.css';
 
 // Dynamic import of SimpleMDE to prevent SSR issues
@@ -296,6 +297,15 @@ export default function CreateKbEntryPage() {
             options={editorOptions}
           />
         </div>
+
+        <KbLlmInteraction
+          formData={{
+            article_title: formData.article_title,
+            article_subtitle: formData.article_subtitle,
+            article_body: formData.article_body,
+            category: formData.category,
+          }}
+        />
 
         <hr className="my-8 border-t border-gray-200" />
         <div className="flex justify-end gap-4">
