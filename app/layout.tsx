@@ -1,6 +1,8 @@
 // app/layout.tsx
 import "./globals.css";
 import "easymde/dist/easymde.min.css";
+import "ag-grid-community/styles/ag-grid.css";
+import "ag-grid-community/styles/ag-theme-alpine.css";
 import Link from "next/link";
 import type { Metadata } from "next";
 import Image from "next/image";
@@ -58,6 +60,33 @@ export default function RootLayout({
                   <Link href="/faq" className="nav-link">
                     FAQ
                   </Link>
+                </li>
+                <li className="relative group">
+                  <Link href="/kb" className="nav-link">
+                    Knowledge Base
+                  </Link>
+                  <ul className="absolute left-0 mt-2 w-48 bg-white rounded-md shadow-lg py-1 hidden group-hover:block">
+                    <li>
+                      <Link href="/kb" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        List Entries
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/kb/new" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        New Entry
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/kb/import" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Import
+                      </Link>
+                    </li>
+                    <li>
+                      <Link href="/kb/export" className="block px-4 py-2 text-sm text-gray-700 hover:bg-gray-100">
+                        Export
+                      </Link>
+                    </li>
+                  </ul>
                 </li>
               </ul>
             </nav>
