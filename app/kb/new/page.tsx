@@ -301,14 +301,44 @@ export default function CreateKbEntryPage() {
           />
         </div>
 
-        <KbLlmInteraction
-          formData={{
-            article_title: formData.article_title,
-            article_subtitle: formData.article_subtitle,
-            article_body: formData.article_body,
-            category: formData.category,
-          }}
-        />
+        <div className="mt-8">
+          <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Assistance</h2>
+          <p className="text-gray-600 mb-6">
+            Get help from AI while creating your KB entry:
+          </p>
+          
+          <div className="space-y-6">
+            {/* Interactive Chat Card */}
+            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 transition-colors">
+              <div className="flex items-start mb-4">
+                <div className="flex-shrink-0">
+                  <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                  </svg>
+                </div>
+                <div className="ml-4">
+                  <h3 className="text-lg font-medium text-gray-900">Interactive Chat</h3>
+                  <p className="mt-1 text-sm text-gray-500">
+                    Have a conversation with AI to get help creating your content.
+                  </p>
+                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                    <li>• Ask specific questions</li>
+                    <li>• Get writing suggestions</li>
+                    <li>• Refine content iteratively</li>
+                  </ul>
+                </div>
+              </div>
+              <KbLlmInteraction
+                formData={{
+                  article_title: formData.article_title,
+                  article_subtitle: formData.article_subtitle,
+                  article_body: formData.article_body,
+                  category: formData.category,
+                }}
+              />
+            </div>
+          </div>
+        </div>
 
         <hr className="my-8 border-t border-gray-200" />
         <div className="flex justify-end gap-4">
