@@ -3,14 +3,10 @@
  */
 
 /**
- * Format title to be plain text with lowercase and hyphens
+ * Format title to be plain text
  */
 export function formatKbTitle(title: string): string {
-  return title
-    .trim()
-    .toLowerCase()
-    .replace(/[^a-z0-9\s-]/g, '') // Remove special characters except hyphens
-    .replace(/\s+/g, '-'); // Replace spaces with hyphens
+  return title.trim(); // Only trim whitespace, preserve original text
 }
 
 /**

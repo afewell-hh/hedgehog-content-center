@@ -2,6 +2,7 @@
 
 import { useState } from 'react';
 import Papa from 'papaparse';
+import { formatKbTitle, formatKbSubtitle, formatKbBody } from '@/lib/formatUtils';
 
 interface ExportStats {
   total: number;
@@ -52,22 +53,35 @@ export default function ExportKbPage() {
         processed: 0,
         errors: 0,
       };
+      setStats(stats);
 
-      // Transform entries for export
-      const exportData = entries.map((entry: any) => ({
-        knowledge_base_name: 'KB',
-        article_title: entry.article_title,
-        article_subtitle: entry.article_subtitle || '',
-        article_language: entry.article_language || 'en',
-        article_url: entry.article_url,
-        article_body: entry.article_body,
-        category: entry.category,
-        subcategory: entry.subcategory || '',
-        keywords: entry.keywords || '',
-        last_modified_date: entry.last_modified_date,
-        status: entry.status,
-        archived: entry.archived || false,
-      }));
+      // Transform entries for export, applying Hubspot formatting
+      const exportData = entries.map((entry: any) => {
+        try {
+          const formattedEntry = {
+            knowledge_base_name: 'KB',
+            article_title: formatKbTitle(entry.article_title),
+            article_subtitle: formatKbSubtitle(entry.article_subtitle || ''),
+            article_language: 'English',
+            article_url: entry.article_url,
+            article_body: formatKbBody(entry.article_body),
+            category: entry.category,
+            subcategory: entry.subcategory || '',
+            keywords: entry.keywords || '',
+            last_modified_date: new Date(entry.last_modified_date).toISOString(),
+            status: 'PUBLISHED', // All exported entries are published
+            archived: false,
+          };
+          stats.processed++;
+          setStats({ ...stats });
+          return formattedEntry;
+        } catch (err) {
+          console.error('Entry formatting error:', err);
+          stats.errors++;
+          setStats({ ...stats });
+          return null;
+        }
+      }).filter(Boolean); // Remove any failed entries
 
       // Convert to CSV with proper formatting
       const csv = Papa.unparse(exportData, {
@@ -84,9 +98,6 @@ export default function ExportKbPage() {
       link.download = `kb-export-${timestamp}.csv`;
       link.click();
 
-      stats.processed = exportData.length;
-      setStats(stats);
-
       // Show success message
       const successDiv = document.createElement('div');
       successDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded';
@@ -96,8 +107,10 @@ export default function ExportKbPage() {
     } catch (err) {
       console.error('Export error:', err);
       setError(err instanceof Error ? err.message : 'Failed to export entries');
-      if (stats) stats.errors++;
-      setStats(stats);
+      if (stats) {
+        stats.errors++;
+        setStats({ ...stats });
+      }
     } finally {
       setExporting(false);
     }
@@ -114,6 +127,21 @@ export default function ExportKbPage() {
       )}
 
       <div className="space-y-6">
+        <div className="bg-blue-50 p-4 rounded mb-6">
+          <h2 className="text-lg font-semibold text-blue-700 mb-2">Export Format Details</h2>
+          <ul className="list-disc list-inside space-y-2 text-blue-600">
+            <li>Article titles will be preserved exactly as entered (plain text)</li>
+            <li>Article subtitles will be plain text without any formatting</li>
+            <li>Article body will use Hubspot's hybrid HTML/Markdown format:
+              <ul className="ml-6 mt-1 list-disc">
+                <li>Paragraphs wrapped in {"<p>"} tags</li>
+                <li>Line breaks as {"<br>"} tags</li>
+                <li>Bold text as **text**</li>
+              </ul>
+            </li>
+          </ul>
+        </div>
+
         <div className="flex gap-4 items-center">
           <select
             value={selectedCategory}
@@ -130,30 +158,43 @@ export default function ExportKbPage() {
           <button
             onClick={handleExport}
             disabled={exporting}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark disabled:opacity-50"
+            className="px-6 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 disabled:opacity-50 font-semibold text-lg min-w-[120px]"
           >
-            {exporting ? 'Exporting...' : 'Export'}
+            {exporting ? (
+              <span className="flex items-center gap-2">
+                <svg className="animate-spin h-5 w-5" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" fill="none" />
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                </svg>
+                Exporting...
+              </span>
+            ) : (
+              'Export to CSV'
+            )}
           </button>
         </div>
 
         {stats && (
-          <div className="bg-gray-100 p-4 rounded">
+          <div className="bg-gray-50 p-4 rounded border">
             <h2 className="text-lg font-semibold mb-2">Export Progress</h2>
             <div className="space-y-2">
               <p>Total entries: {stats.total}</p>
-              <p>Processed: {stats.processed}</p>
-              <p>Errors: {stats.errors}</p>
+              <p>Processed: <span className="text-green-600">{stats.processed}</span></p>
+              {stats.errors > 0 && (
+                <p>Errors: <span className="text-red-600">{stats.errors}</span></p>
+              )}
             </div>
           </div>
         )}
 
-        <div className="bg-blue-100 p-4 rounded">
-          <h2 className="text-lg font-semibold mb-2">Export Notes</h2>
-          <ul className="list-disc list-inside space-y-2">
-            <li>Only published entries will be exported</li>
+        <div className="bg-yellow-50 p-4 rounded border border-yellow-200">
+          <h2 className="text-lg font-semibold text-yellow-700 mb-2">Important Notes</h2>
+          <ul className="list-disc list-inside space-y-2 text-yellow-600">
+            <li>Only published entries (internal_status="Approved" and visibility="Public") will be exported</li>
             <li>All entries will be formatted according to Hubspot requirements</li>
             <li>Select a category to filter the export, or "All Categories" to export everything</li>
             <li>The export file will be named kb-export-[date].csv</li>
+            <li>The CSV file includes a BOM marker for Excel compatibility</li>
           </ul>
         </div>
       </div>
