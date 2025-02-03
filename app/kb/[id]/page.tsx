@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import LLMChat from '@/components/LLMChat';
@@ -27,8 +27,9 @@ const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
   ssr: false
 });
 
-export default function EditKbEntryPage({ params }: { params: { id: string } }) {
+export default function EditKbEntryPage({ params }: { params: Promise<{ id: string }> }) {
   const router = useRouter();
+  const resolvedParams = use(params);
   const [entry, setEntry] = useState<KbEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -51,7 +52,7 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
   useEffect(() => {
     const fetchEntry = async () => {
       try {
-        const response = await fetch(`/api/kb-entries/${params.id}`);
+        const response = await fetch(`/api/kb-entries/${resolvedParams.id}`);
         if (!response.ok) {
           throw new Error('Failed to fetch KB entry');
         }
@@ -65,7 +66,7 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
     };
 
     fetchEntry();
-  }, [params.id]);
+  }, [resolvedParams.id]);
 
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
