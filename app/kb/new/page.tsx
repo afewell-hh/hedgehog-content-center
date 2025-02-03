@@ -4,6 +4,7 @@ import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import KbLlmInteraction from '@/app/components/KbLlmInteraction';
+import { usePrompts } from '@/app/hooks/usePrompts';
 import 'easymde/dist/easymde.min.css';
 
 // Dynamic import of SimpleMDE to prevent SSR issues
@@ -52,6 +53,7 @@ export default function CreateKbEntryPage() {
   const [formData, setFormData] = useState<FormData>(initialFormData);
   const [error, setError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
+  const { prompts } = usePrompts();
 
   const categories = [
     'Glossary',
@@ -328,40 +330,34 @@ export default function CreateKbEntryPage() {
                   </ul>
                 </div>
               </div>
-              <KbLlmInteraction
-                entry={{
-                  id: 0,
-                  article_title: formData.article_title,
-                  article_subtitle: formData.article_subtitle,
-                  article_body: formData.article_body,
-                  category: formData.category,
-                  keywords: formData.keywords,
-                }}
-                onUpdate={(updatedEntry) => {
-                  setFormData(prev => ({
-                    ...prev,
-                    article_subtitle: updatedEntry.article_subtitle,
-                    article_body: updatedEntry.article_body
-                  }));
-                }}
-                prompt={`You are a technical documentation expert. Help improve this knowledge base article.
-
-Current article:
-Title: {title}
-Category: {category}
-Subtitle: {subtitle}
-Body: {body}
-
-Please provide improvements that follow these STRICT formatting rules:
-1. Title must be lowercase with hyphens, plain text only
-2. Subtitle must be plain text only, NO HTML or markdown formatting
-3. Body content must use a specific hybrid HTML/Markdown format:
-   - Paragraphs must be wrapped in <p> tags
-   - Use <br> for line breaks
-   - Use markdown **bold** for emphasis
-   - Lists can use either HTML or markdown format
-   - Technical accuracy is crucial`}
-              />
+              <div className="space-y-8 px-4 py-6">
+                <div className="flex flex-col space-y-4">
+                  <h1 className="text-2xl font-bold">Create New KB Entry</h1>
+                  
+                  {/* Interactive Chat Section */}
+                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
+                    <h2 className="text-lg font-semibold mb-2">Interactive Assistant</h2>
+                    <p className="text-sm text-gray-600 mb-4">
+                      Get help creating your KB entry. The assistant will guide you through the process
+                      and ensure your content meets our quality standards.
+                    </p>
+                    <KbLlmInteraction
+                      prompt={prompts.newEntry}
+                      title={formData.article_title}
+                      subtitle={formData.article_subtitle}
+                      body={formData.article_body}
+                      category={formData.category}
+                      keywords={formData.keywords}
+                      onUpdate={(field, value) => {
+                        setFormData(prev => ({
+                          ...prev,
+                          [field]: value
+                        }));
+                      }}
+                    />
+                  </div>
+                </div>
+              </div>
             </div>
           </div>
         </div>
