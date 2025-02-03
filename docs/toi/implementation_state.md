@@ -196,6 +196,78 @@ The focus loss bug manifests as:
 
 If these symptoms appear, verify implementation against this pattern.
 
+### Hubspot Formatting Rules
+**CRITICAL: DO NOT MODIFY THESE RULES WITHOUT EXPLICIT APPROVAL**
+
+The application enforces specific formatting rules for Hubspot compatibility:
+
+#### 1. Article Title Format
+- Plain text only, no HTML or markdown
+- Lowercase with hyphens for spaces
+- Example: "back-end-network", "north-south-traffic"
+- Implementation: `formatKbTitle` in `/lib/formatUtils.ts`
+
+#### 2. Article Subtitle Format
+- Plain text only
+- No HTML or markdown formatting
+- Allows punctuation and technical terms
+- Implementation: `formatKbSubtitle` in `/lib/formatUtils.ts`
+
+#### 3. Article Body Format
+- Hybrid HTML/Markdown format
+- HTML elements:
+  - Paragraphs must use `<p>` tags
+  - Line breaks use `<br>` tags
+- Markdown elements:
+  - Bold text uses `**text**`
+  - Lists can use either HTML or markdown
+- Implementation: `formatKbBody` in `/lib/formatUtils.ts`
+
+#### Implementation Details
+1. Format Utilities (`/lib/formatUtils.ts`):
+   - `formatKbTitle`: Ensures lowercase with hyphens
+   - `formatKbSubtitle`: Strips HTML/markdown
+   - `formatKbBody`: Enforces hybrid format
+   - `formatLlmResponse`: Formats all LLM responses
+
+2. LLM Integration:
+   - Updated prompts to enforce formatting
+   - Format validation before saving
+   - Clear error messages for format violations
+
+3. UI Components:
+   - Form validation for format rules
+   - Preview shows formatted content
+   - Help text explains format requirements
+
+#### Verification Steps
+To verify format compliance:
+1. Title should be lowercase with hyphens
+2. Subtitle should be plain text
+3. Body should have:
+   - Paragraphs in `<p>` tags
+   - Line breaks as `<br>`
+   - Bold text as `**text**`
+
+### LLM Integration Updates
+1. Interactive Mode (`/app/components/KbLlmInteraction.tsx`):
+   - Removed nested form elements
+   - Added keyboard shortcuts (Cmd/Ctrl + Enter)
+   - Improved loading states
+   - Format validation for responses
+
+2. Auto-Update Mode (`/app/api/llm/kb/auto/route.ts`):
+   - Enhanced prompt with format rules
+   - Automatic format correction
+   - Improved error handling
+   - Technical accuracy checks
+
+3. Shared Features:
+   - Format utilities for responses
+   - Consistent error handling
+   - Loading state indicators
+   - Clear success/error messages
+
 ## In Progress Features
 None - All planned features are currently implemented
 

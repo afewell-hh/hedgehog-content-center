@@ -215,68 +215,106 @@ LLM Integration:
    - DuckDuckGo verification
    - Citation management system
 
-### 5. LLM Integration 
-#### A. Interactive Mode
-- Purpose: User-driven updates with real-time assistance
-- Implementation:
-  - Dedicated "AI Assistance" section with clear heading
-  - Card-based interface with blue theme and chat icon
-  - Feature list explaining capabilities:
-    - Ask specific questions
-    - Get writing suggestions
-    - Refine content iteratively
-  - Full-width chat interface below feature list
-  - Conversation history with fixed height and scrollbar
-- Context Integration:
-  - Aware of Article Title, Subtitle, and Body
-  - Category-specific prompting
-  - DuckDuckGo search integration
-- Citation Requirements:
-  - Numbered citations in content ([1], [2], etc.)
-  - Footnotes section at bottom of Article Body
-  - Format: [n]: URL
-  - Preserve existing citations when updating
-  - Remove unused citations
-  - Add new citations as needed
+### 5. Hubspot Content Format Compliance
+#### A. Format Requirements
+1. Article Title:
+   - Plain text only
+   - Lowercase with hyphens
+   - No HTML or markdown
+   - Example: "back-end-network"
 
-#### B. Non-Interactive Mode
-- Purpose: Automated content improvement
-- UI Elements:
-  - Green-themed card with lightning bolt icon
-  - Feature list explaining capabilities:
-    - Fact-checks against reliable sources
-    - Adds relevant citations
-    - Improves clarity and completeness
-  - "Update with AI" button with loading animation
-  - Confirmation dialog explaining the process
-  - Side-by-side features and button layout
-- Technical Components:
-  - Writer agent for content generation
-  - Editor agent for refinement
-  - DuckDuckGo verification
-  - Citation management system
+2. Article Subtitle:
+   - Plain text only
+   - No formatting (HTML/markdown)
+   - Technical terms allowed
+   - Punctuation allowed
 
-#### C. Implementation Details
-- Edit Page (`/app/kb/[id]/page.tsx`):
-  - Both Interactive and Non-Interactive modes
-  - Stacked card layout with full width
-  - Clear visual hierarchy and spacing
-  - Consistent styling with other KB pages
+3. Article Body:
+   - Hybrid HTML/Markdown format
+   - HTML requirements:
+     - Paragraphs in `<p>` tags
+     - Line breaks as `<br>`
+   - Markdown allowed:
+     - Bold text as `**text**`
+     - Lists in either format
 
-- New Entry Page (`/app/kb/new/page.tsx`):
-  - Interactive mode only
-  - Matching card-based styling
-  - Same feature list and chat interface
+#### B. Implementation Components
+1. Format Utilities (`/lib/formatUtils.ts`):
+   ```typescript
+   // Title formatting
+   export function formatKbTitle(title: string): string {
+     return title
+       .trim()
+       .toLowerCase()
+       .replace(/[^a-z0-9\s-]/g, '')
+       .replace(/\s+/g, '-');
+   }
 
-- API Endpoints:
-  - `/api/llm/kb/`: Interactive chat endpoint
-  - `/api/llm/kb/auto/`: Non-interactive update endpoint
+   // Subtitle formatting
+   export function formatKbSubtitle(subtitle: string): string {
+     return subtitle
+       .trim()
+       .replace(/[<>]/g, '')
+       .replace(/\*\*/g, '')
+       .replace(/\*/g, '')
+       .replace(/#{1,6}\s/g, '')
+       .replace(/`/g, '');
+   }
 
-- Components:
-  - LLM Chat component for interactive mode
-  - Loading states and animations
-  - Error handling and user feedback
-  - Consistent card component styling
+   // Body formatting
+   export function formatKbBody(body: string): string {
+     // Wrap paragraphs in <p> tags
+     let formatted = body
+       .split('\n\n')
+       .map(para => para.trim())
+       .filter(para => para)
+       .map(para => {
+         if (para.startsWith('<') && para.endsWith('>')) {
+           return para;
+         }
+         return `<p>${para}</p>`;
+       })
+       .join('\n\n');
+
+     // Handle line breaks
+     formatted = formatted.replace(/(?<!\>)\n(?!\<)/g, '<br>');
+     formatted = formatted.replace(/<br><br>/g, '</p>\n\n<p>');
+
+     // Keep markdown bold
+     formatted = formatted.replace(/\*\*(.*?)\*\*/g, '**$1**');
+
+     return formatted;
+   }
+   ```
+
+2. LLM Integration:
+   - Updated prompts with format rules
+   - Response formatting utilities
+   - Format validation before saving
+
+3. UI Components:
+   - Form validation for formats
+   - Preview functionality
+   - Format help tooltips
+
+#### C. Testing Requirements
+1. Title Format Tests:
+   - Converts to lowercase
+   - Replaces spaces with hyphens
+   - Removes special characters
+   - Handles edge cases
+
+2. Subtitle Format Tests:
+   - Removes HTML tags
+   - Removes markdown formatting
+   - Preserves punctuation
+   - Preserves technical terms
+
+3. Body Format Tests:
+   - Proper paragraph wrapping
+   - Correct line break handling
+   - Markdown bold preservation
+   - List format handling
 
 ### 6. API Routes
 New routes needed:
