@@ -309,10 +309,10 @@ export default function CreateKbEntryPage() {
           
           <div className="space-y-6">
             {/* Interactive Chat Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-blue-500 transition-colors">
+            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-orange-500 transition-colors">
               <div className="flex items-start mb-4">
                 <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-blue-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
                   </svg>
                 </div>
@@ -329,12 +329,38 @@ export default function CreateKbEntryPage() {
                 </div>
               </div>
               <KbLlmInteraction
-                formData={{
+                entry={{
+                  id: 0,
                   article_title: formData.article_title,
                   article_subtitle: formData.article_subtitle,
                   article_body: formData.article_body,
                   category: formData.category,
+                  keywords: formData.keywords,
                 }}
+                onUpdate={(updatedEntry) => {
+                  setFormData(prev => ({
+                    ...prev,
+                    article_subtitle: updatedEntry.article_subtitle,
+                    article_body: updatedEntry.article_body
+                  }));
+                }}
+                prompt={`You are a technical documentation expert. Help improve this knowledge base article.
+
+Current article:
+Title: {title}
+Category: {category}
+Subtitle: {subtitle}
+Body: {body}
+
+Please provide improvements that follow these STRICT formatting rules:
+1. Title must be lowercase with hyphens, plain text only
+2. Subtitle must be plain text only, NO HTML or markdown formatting
+3. Body content must use a specific hybrid HTML/Markdown format:
+   - Paragraphs must be wrapped in <p> tags
+   - Use <br> for line breaks
+   - Use markdown **bold** for emphasis
+   - Lists can use either HTML or markdown format
+   - Technical accuracy is crucial`}
               />
             </div>
           </div>
@@ -345,16 +371,26 @@ export default function CreateKbEntryPage() {
           <button
             type="button"
             onClick={() => router.back()}
-            className="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+            className="px-6 py-2 border border-orange-200 rounded-md shadow-sm text-sm font-medium text-orange-600 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
           >
             Cancel
           </button>
           <button
             type="submit"
             disabled={saving}
-            className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+            className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
           >
-            {saving ? 'Saving...' : 'Save KB Entry'}
+            {saving ? (
+              <>
+                <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                Saving...
+              </>
+            ) : (
+              'Save KB Entry'
+            )}
           </button>
         </div>
       </form>
