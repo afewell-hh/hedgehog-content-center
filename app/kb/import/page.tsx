@@ -25,6 +25,7 @@ export default function ImportKbPage() {
   const [stats, setStats] = useState<ImportStats | null>(null);
   const [conflicts, setConflicts] = useState<ConflictEntry[]>([]);
   const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [errors, setErrors] = useState<string[]>([]);
 
   const categories = [
     'all',
@@ -39,12 +40,14 @@ export default function ImportKbPage() {
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
-    if (selectedFile && selectedFile.type === 'text/csv') {
-      setFile(selectedFile);
-      setError(null);
-    } else {
-      setError('Please select a valid CSV file');
-      setFile(null);
+    if (selectedFile) {
+      if (selectedFile.type === 'text/csv' || selectedFile.name.endsWith('.csv')) {
+        setFile(selectedFile);
+        setError(null);
+      } else {
+        setError('Please select a valid CSV file');
+        setFile(null);
+      }
     }
   };
 
@@ -57,31 +60,81 @@ export default function ImportKbPage() {
     };
 
     const conflicts: ConflictEntry[] = [];
+    const errors: string[] = [];
 
     for (const row of data) {
       try {
+        // Skip empty rows
+        if (!row['Article title'] && !row['Article body'] && !row['Category']) {
+          continue;
+        }
+
+        // Map CSV fields to our internal field names
+        const mappedRow = {
+          title: row['Article title']?.trim(),
+          body: row['Article body']?.trim(),
+          category: row['Category']?.trim(),
+          article_url: row['Article URL']?.trim(),
+          last_modified_date: row['Last modified date'],
+          status: row['Status'],
+          metadata: {
+            subtitle: row['Article subtitle']?.trim(),
+            language: row['Article language']?.trim(),
+            subcategory: row['Subcategory']?.trim(),
+            keywords: row['Keywords']?.trim(),
+            archived: row['Archived'] === 'true'
+          }
+        };
+
+        // Basic validation
+        if (!mappedRow.title || !mappedRow.body || !mappedRow.category) {
+          const missingFields = [
+            !mappedRow.title && 'title',
+            !mappedRow.body && 'body',
+            !mappedRow.category && 'category'
+          ].filter(Boolean);
+          
+          throw new Error(`Missing required fields for entry "${mappedRow.title || 'Unknown'}": ${missingFields.join(', ')}`);
+        }
+
+        // Validate category
+        if (!categories.includes(mappedRow.category)) {
+          throw new Error(`Invalid category "${mappedRow.category}" for entry "${mappedRow.title}". Valid categories are: ${categories.join(', ')}`);
+        }
+
         // Skip entries that don't match the selected category
-        if (selectedCategory !== 'all' && row.category !== selectedCategory) {
+        if (selectedCategory !== 'all' && mappedRow.category !== selectedCategory) {
           continue;
         }
 
         // Check for conflicts
-        const checkResponse = await fetch(`/api/kb-entries?article_url=${row.article_url}`);
+        if (!mappedRow.article_url) {
+          continue; // Skip entries without article_url
+        }
+
+        const checkResponse = await fetch(`/api/kb-entries?article_url=${encodeURIComponent(mappedRow.article_url)}`);
+        if (!checkResponse.ok) {
+          throw new Error('Failed to check for conflicts');
+        }
+
         const existingEntries = await checkResponse.json();
 
-        if (existingEntries.length > 0 && !overwrite) {
+        if (existingEntries && existingEntries.length > 0 && !overwrite) {
           stats.conflicts++;
           conflicts.push({
-            article_url: row.article_url,
+            article_url: mappedRow.article_url,
             existing_date: existingEntries[0].last_modified_date,
-            import_date: row.last_modified_date,
+            import_date: mappedRow.last_modified_date,
           });
           continue;
         }
 
+        // Map Hubspot status to internal status and visibility
+        const { internal_status, visibility } = mapHubspotStatus(mappedRow.status);
+
         // Process the entry
-        const method = existingEntries.length > 0 ? 'PATCH' : 'POST';
-        const url = existingEntries.length > 0 
+        const method = existingEntries && existingEntries.length > 0 ? 'PATCH' : 'POST';
+        const url = existingEntries && existingEntries.length > 0
           ? `/api/kb-entries/${existingEntries[0].id}`
           : '/api/kb-entries';
 
@@ -91,28 +144,43 @@ export default function ImportKbPage() {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            ...row,
-            metadata: typeof row.metadata === 'string' 
-              ? JSON.parse(row.metadata) 
-              : row.metadata,
+            ...mappedRow,
+            internal_status,
+            visibility,
           }),
         });
 
         if (!response.ok) {
-          throw new Error(`Failed to ${method.toLowerCase()} entry`);
+          const errorData = await response.json();
+          throw new Error(errorData.error || `Failed to ${method.toLowerCase()} entry`);
         }
 
         stats.processed++;
       } catch (err) {
         console.error('Error processing entry:', err);
         stats.errors++;
+        errors.push(err instanceof Error ? err.message : 'Unknown error');
       }
 
       // Update progress
       setStats({ ...stats });
     }
 
-    return { stats, conflicts };
+    return { stats, conflicts, errors };
+  };
+
+  const mapHubspotStatus = (hubspotStatus: string): { internal_status: string, visibility: string } => {
+    const status = (hubspotStatus || '').toUpperCase();
+    if (status === 'PUBLISHED') {
+      return {
+        internal_status: 'Approved',
+        visibility: 'Public'
+      };
+    }
+    return {
+      internal_status: 'Draft',
+      visibility: 'Private'
+    };
   };
 
   const handleImport = async (overwrite: boolean = false) => {
@@ -122,17 +190,34 @@ export default function ImportKbPage() {
     setError(null);
     setStats(null);
     setConflicts([]);
+    setErrors([]);
 
     try {
       // Parse CSV file
       const text = await file.text();
       Papa.parse(text, {
         header: true,
+        skipEmptyLines: true,
+        transformHeader: (header) => header.trim(),
+        transform: (value) => (value ? value.trim() : value),
         complete: async (results) => {
+          console.log('Parsed CSV data:', results.data); // Debug log
           try {
-            const { stats, conflicts } = await processImport(results.data, overwrite);
+            // Filter out empty rows
+            const validRows = results.data.filter((row: any) => {
+              const hasRequiredFields = 
+                row['Article title']?.toString().trim() && 
+                row['Article body']?.toString().trim() && 
+                row['Category']?.toString().trim();
+              return hasRequiredFields;
+            });
+
+            console.log('Valid rows:', validRows); // Debug log
+
+            const { stats, conflicts, errors } = await processImport(validRows, overwrite);
             setStats(stats);
             setConflicts(conflicts);
+            setErrors(errors);
 
             if (stats.processed === stats.total) {
               setTimeout(() => {
@@ -146,11 +231,13 @@ export default function ImportKbPage() {
           }
         },
         error: (error) => {
+          console.error('CSV parsing error:', error); // Debug log
           setError(`Failed to parse CSV: ${error.message}`);
           setImporting(false);
         },
       });
     } catch (err) {
+      console.error('File reading error:', err); // Debug log
       setError(err instanceof Error ? err.message : 'Failed to read file');
       setImporting(false);
     }
@@ -167,39 +254,43 @@ export default function ImportKbPage() {
       )}
 
       <div className="space-y-6">
-        <div className="flex gap-4 items-center">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border rounded p-2"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category === 'all' ? 'All Categories' : category}
-              </option>
-            ))}
-          </select>
+        <div className="flex flex-col gap-4">
+          <div className="flex gap-4 items-center">
+            <select
+              value={selectedCategory}
+              onChange={(e) => setSelectedCategory(e.target.value)}
+              className="border rounded p-2"
+            >
+              {categories.map((category) => (
+                <option key={category} value={category}>
+                  {category === 'all' ? 'All Categories' : category}
+                </option>
+              ))}
+            </select>
 
-          <input
-            type="file"
-            accept=".csv"
-            onChange={handleFileChange}
-            className="block w-full text-sm text-gray-500
-              file:mr-4 file:py-2 file:px-4
-              file:rounded-full file:border-0
-              file:text-sm file:font-semibold
-              file:bg-primary file:text-white
-              hover:file:bg-primary-dark"
-            disabled={importing}
-          />
+            <div className="flex gap-4 items-center flex-1">
+              <input
+                type="file"
+                accept=".csv,text/csv"
+                onChange={handleFileChange}
+                className="block text-sm text-gray-500
+                  file:mr-4 file:py-2 file:px-4
+                  file:rounded-full file:border-0
+                  file:text-sm file:font-semibold
+                  file:bg-primary file:text-white
+                  hover:file:bg-primary-dark
+                  cursor-pointer"
+              />
 
-          <button
-            onClick={() => handleImport(false)}
-            disabled={!file || importing}
-            className="px-4 py-2 bg-primary text-white rounded hover:bg-primary-dark disabled:opacity-50"
-          >
-            {importing ? 'Importing...' : 'Import'}
-          </button>
+              <button
+                onClick={() => handleImport(false)}
+                disabled={!file || importing}
+                className="px-6 py-2 bg-green-600 text-white font-semibold rounded-lg hover:bg-green-700 disabled:opacity-50 disabled:cursor-not-allowed min-w-[120px]"
+              >
+                {importing ? 'Importing...' : 'Import File'}
+              </button>
+            </div>
+          </div>
         </div>
 
         {stats && (
@@ -238,6 +329,17 @@ export default function ImportKbPage() {
             >
               Overwrite Existing Entries
             </button>
+          </div>
+        )}
+
+        {errors.length > 0 && (
+          <div className="bg-red-100 p-4 rounded">
+            <h2 className="text-lg font-semibold mb-2">Errors</h2>
+            <ul>
+              {errors.map((error, index) => (
+                <li key={index}>{error}</li>
+              ))}
+            </ul>
           </div>
         )}
       </div>

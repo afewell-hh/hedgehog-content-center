@@ -345,7 +345,7 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
               </label>
               <textarea
                 name="notes"
-                value={entry.notes}
+                value={entry.notes || ''}
                 onChange={handleInputChange}
                 rows={3}
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
