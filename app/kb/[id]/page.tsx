@@ -382,43 +382,45 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
             Choose how you want AI to help improve your KB entry:
           </p>
           
-          <div className="grid grid-cols-2 gap-6 mb-6">
+          <div className="space-y-6">
             {/* Automatic Update Card */}
             <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-green-500 transition-colors">
-              <div className="flex items-start mb-4">
+              <div className="flex items-start">
                 <div className="flex-shrink-0">
                   <svg className="h-6 w-6 text-green-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 10V3L4 14h7v7l9-11h-7z" />
                   </svg>
                 </div>
-                <div className="ml-4">
+                <div className="ml-4 flex-grow">
                   <h3 className="text-lg font-medium text-gray-900">Quick Update</h3>
                   <p className="mt-1 text-sm text-gray-500">
                     Let AI automatically improve your content with verified information and proper citations.
                   </p>
-                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                    <li>• Fact-checks against reliable sources</li>
-                    <li>• Adds relevant citations</li>
-                    <li>• Improves clarity and completeness</li>
-                  </ul>
-                  <button
-                    type="button"
-                    onClick={handleAutoUpdate}
-                    disabled={updating}
-                    className="mt-4 w-full inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    {updating ? (
-                      <>
-                        <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                        </svg>
-                        Updating...
-                      </>
-                    ) : (
-                      'Update with AI'
-                    )}
-                  </button>
+                  <div className="sm:flex sm:justify-between sm:items-start">
+                    <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                      <li>• Fact-checks against reliable sources</li>
+                      <li>• Adds relevant citations</li>
+                      <li>• Improves clarity and completeness</li>
+                    </ul>
+                    <button
+                      type="button"
+                      onClick={handleAutoUpdate}
+                      disabled={updating}
+                      className="mt-4 sm:mt-0 sm:ml-4 sm:w-48 inline-flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+                    >
+                      {updating ? (
+                        <>
+                          <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                            <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                          </svg>
+                          Updating...
+                        </>
+                      ) : (
+                        'Update with AI'
+                      )}
+                    </button>
+                  </div>
                 </div>
               </div>
             </div>
