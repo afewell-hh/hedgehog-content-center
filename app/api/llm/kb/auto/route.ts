@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
+import { formatKbSubtitle, formatKbBody } from '@/lib/formatUtils';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -25,19 +26,21 @@ ${subtitle ? `Subtitle: ${subtitle}\n` : ''}
 Current Content:
 ${body || 'No content provided'}
 
-Please provide an improved version with:
-1. A clear, concise subtitle that summarizes the key points
-2. Well-structured content with proper headings and formatting
-3. Technical accuracy and proper terminology
-4. Clear explanations suitable for the target audience
-5. Proper markdown formatting
+Please provide an improved version that follows these STRICT formatting rules:
+1. Subtitle must be plain text only, NO HTML or markdown formatting
+2. Body content must use a specific hybrid HTML/Markdown format:
+   - Paragraphs must be wrapped in <p> tags
+   - Use <br> for line breaks
+   - Use markdown **bold** for emphasis
+   - Lists can use either HTML or markdown format
+   - Technical accuracy is crucial
 
-Respond only with the improved content in this format:
+Respond ONLY with the improved content in this format:
 SUBTITLE:
-[improved subtitle]
+[improved subtitle in plain text]
 
 BODY:
-[improved body content in markdown]`;
+[improved body with hybrid HTML/Markdown format]`;
 
     const completion = await openai.chat.completions.create({
       messages: [{ role: "user", content: prompt }],
@@ -52,12 +55,12 @@ BODY:
       throw new Error('No response from AI');
     }
 
-    // Parse the response
+    // Parse and format the response
     const subtitleMatch = response.match(/SUBTITLE:\n([\s\S]*?)\n\nBODY:/);
     const bodyMatch = response.match(/BODY:\n([\s\S]*?)$/);
 
-    const improvedSubtitle = subtitleMatch ? subtitleMatch[1].trim() : subtitle;
-    const improvedBody = bodyMatch ? bodyMatch[1].trim() : body;
+    const improvedSubtitle = subtitleMatch ? formatKbSubtitle(subtitleMatch[1].trim()) : subtitle;
+    const improvedBody = bodyMatch ? formatKbBody(bodyMatch[1].trim()) : body;
 
     return NextResponse.json({
       subtitle: improvedSubtitle,

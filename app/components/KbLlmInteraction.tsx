@@ -1,6 +1,6 @@
-'use client';
-
-import { useState } from "react";
+import { useState } from 'react';
+import { OpenAI } from 'openai';
+import { formatLlmResponse } from '@/lib/formatUtils';
 
 interface KbLlmInteractionProps {
   formData: {
@@ -9,125 +9,110 @@ interface KbLlmInteractionProps {
     article_body: string;
     category: string;
   };
+  onUpdate?: (data: { title?: string; subtitle?: string; body?: string }) => void;
 }
 
-export default function KbLlmInteraction({ formData }: KbLlmInteractionProps) {
-  const [userInput, setUserInput] = useState("");
-  const [dialogueHistory, setDialogueHistory] = useState<{ role: string; content: string }[]>([]);
+export default function KbLlmInteraction({ formData, onUpdate }: KbLlmInteractionProps) {
+  const [userInput, setUserInput] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
-  const handleSendMessage = async (e?: React.MouseEvent | React.KeyboardEvent) => {
-    // Prevent any default behavior
-    e?.preventDefault();
-    e?.stopPropagation();
-
-    if (!userInput.trim()) return;
-
-    // Add user message to dialogue history
-    setDialogueHistory([
-      ...dialogueHistory,
-      { role: "user", content: userInput },
-    ]);
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setIsLoading(true);
+    setError(null);
 
     try {
-      const response = await fetch("/api/llm/kb", {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          mode: "dialogue",
-          userInput,
-          context: {
-            article_title: formData.article_title,
-            article_subtitle: formData.article_subtitle,
-            article_body: formData.article_body,
-            category: formData.category,
-          },
-        }),
+      const prompt = `You are a technical documentation expert. Help improve this knowledge base article.
+Current article:
+Title: ${formData.article_title}
+Category: ${formData.category}
+Subtitle: ${formData.article_subtitle}
+Body: ${formData.article_body}
+
+User request: ${userInput}
+
+Please provide improvements that follow these STRICT formatting rules:
+1. Title must be lowercase with hyphens, plain text only
+2. Subtitle must be plain text only, NO HTML or markdown formatting
+3. Body content must use a specific hybrid HTML/Markdown format:
+   - Paragraphs must be wrapped in <p> tags
+   - Use <br> for line breaks
+   - Use markdown **bold** for emphasis
+   - Lists can use either HTML or markdown format
+   - Technical accuracy is crucial
+
+Respond ONLY with the improved content in this format:
+TITLE: [if title needs changing]
+SUBTITLE: [if subtitle needs changing]
+BODY: [if body needs changing]`;
+
+      const response = await fetch('/api/llm/chat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ prompt }),
       });
 
       if (!response.ok) {
-        throw new Error("Failed to get LLM response");
+        throw new Error('Failed to get AI response');
       }
 
       const data = await response.json();
+      const formattedResponse = formatLlmResponse(data.response);
       
-      // Add assistant's response to dialogue history
-      setDialogueHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: data.message },
-      ]);
-    } catch (error) {
-      console.error("Error in LLM interaction:", error);
-      setDialogueHistory((prev) => [
-        ...prev,
-        { role: "assistant", content: "Sorry, I encountered an error processing your request." },
-      ]);
-    }
+      if (onUpdate) {
+        onUpdate(formattedResponse);
+      }
 
-    setUserInput("");
+      setUserInput('');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
-    <div className="mt-8 border rounded-lg p-4 bg-white shadow-sm">
-      <h3 className="text-lg font-medium text-gray-900 mb-4">AI Assistant</h3>
-      
-      {/* Dialogue History */}
-      <div className="mb-4">
-        <div className="border rounded-lg p-2 h-48 overflow-y-auto bg-gray-50">
-          {dialogueHistory.length === 0 ? (
-            <div className="p-4 text-gray-500">
-              <p className="mb-2">No messages yet. Start a conversation! I can help you:</p>
-              <ul className="list-disc ml-5">
-                <li>Improve your article content</li>
-                <li>Suggest better titles or subtitles</li>
-                <li>Add relevant keywords</li>
-                <li>Format your content properly</li>
-                <li>Add citations when needed</li>
-              </ul>
-            </div>
-          ) : (
-            dialogueHistory.map((message, index) => (
-              <div 
-                key={index} 
-                className={`mb-2 p-3 rounded-lg ${
-                  message.role === "user" 
-                    ? "bg-blue-50 border border-blue-100" 
-                    : "bg-white border border-gray-200"
-                }`}
-              >
-                <strong className={message.role === "user" ? "text-blue-700" : "text-green-700"}>
-                  {message.role === "user" ? "You" : "Assistant"}:
-                </strong>{" "}
-                {message.content}
-              </div>
-            ))
-          )}
-        </div>
-      </div>
-
-      {/* Input Area */}
-      <div className="flex gap-2">
-        <input
-          type="text"
+    <form onSubmit={handleSubmit} className="space-y-4">
+      <div>
+        <label htmlFor="userInput" className="sr-only">
+          Your request
+        </label>
+        <textarea
+          id="userInput"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
-          onKeyDown={(e) => {
-            if (e.key === "Enter" && !e.shiftKey) {
-              handleSendMessage(e);
-            }
-          }}
-          className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
-          placeholder="Ask me to help with your KB article..."
+          placeholder="Ask AI to help improve this article. For example: 'Make it more concise' or 'Add more technical details about X'"
+          rows={3}
+          className="block w-full rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
         />
+      </div>
+
+      {error && (
+        <div className="text-sm text-red-600">
+          {error}
+        </div>
+      )}
+
+      <div className="flex justify-end">
         <button
-          onClick={handleSendMessage}
-          disabled={!userInput.trim()}
-          className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          type="submit"
+          disabled={isLoading || !userInput.trim()}
+          className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
-          Send
+          {isLoading ? (
+            <>
+              <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+              </svg>
+              Processing...
+            </>
+          ) : (
+            'Get AI Help'
+          )}
         </button>
       </div>
-    </div>
+    </form>
   );
 }
