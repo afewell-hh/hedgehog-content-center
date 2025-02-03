@@ -210,23 +210,6 @@ export default function CreateFaqDetailPage() {
     }
   };
 
-  // New: Handle Previous/Next RFP_QA Record Navigation
-  const handleNextRfp = async () => {
-    const response = await fetch(`/api/rfp-qa/next/${rfpId}`);
-    const data = await response.json();
-    if (data.nextId) {
-      router.push(`/create-faq/${data.nextId}`);
-    }
-  };
-
-  const handlePreviousRfp = async () => {
-    const response = await fetch(`/api/rfp-qa/prev/${rfpId}`);
-    const data = await response.json();
-    if (data.prevId) {
-      router.push(`/create-faq/${data.prevId}`);
-    }
-  };
-
   const toggleDialogueHistory = () => {
     setIsDialogueHistoryExpanded((prev) => !prev);
   };
@@ -261,104 +244,111 @@ export default function CreateFaqDetailPage() {
     },
   ];
 
-  // Memoize the editor options
-  const editorOptions = useMemo(
-    () => ({
-      autofocus: false,
-      spellChecker: false,
-      status: false,
-      minHeight: "200px",
-    }),
-    []
-  );
+  // Memoized editor options
+  const editorOptions = useMemo(() => ({
+    spellChecker: false,
+    status: false,
+    toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+  }), []);
+
+  // Memoized change handlers for SimpleMDE
+  const handleQuestionChange = useMemo(() => (value: string) => {
+    setProposedQuestion(value);
+  }, []);
+
+  const handleAnswerChange = useMemo(() => (value: string) => {
+    setProposedAnswer(value);
+  }, []);
+
+  const handlePreviousRfp = () => {
+    router.push(`/create-faq/${rfpId - 1}`);
+  };
+
+  const handleNextRfp = () => {
+    router.push(`/create-faq/${rfpId + 1}`);
+  };
 
   if (!rfpRecord) {
     return <div>Loading...</div>;
   }
 
   return (
-    <div className="container p-4">
-      <h1 className="text-3xl font-bold text-primary mb-4">
-        Create FAQ from RFP
-      </h1>
+    <div className="container mx-auto p-4 max-w-4xl">
+      <h1 className="text-3xl font-bold mb-6">Create New FAQ from RFP QA</h1>
 
-      {/* New: Add Previous/Next RFP_QA Record Navigation Buttons */}
-      <div className="mb-2">
+      {/* Navigation Buttons */}
+      <div className="flex space-x-4 mb-6">
         <button
           onClick={handlePreviousRfp}
-          className="btn btn-secondary mr-2"
+          className="border-2 border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md"
         >
           Previous Record
         </button>
-        <button onClick={handleNextRfp} className="btn btn-secondary">
+        <button
+          onClick={handleNextRfp}
+          className="border-2 border-orange-600 text-orange-600 hover:bg-orange-50 px-4 py-2 rounded-md"
+        >
           Next Record
         </button>
       </div>
 
-      {/* Display the RFP_QA record (read-only) */}
-      <div className="mb-4 card">
-        <h2 className="text-2xl font-bold text-primary mb-2">RFP_QA Record</h2>
-        <div className="p-4">
-          <p className="mb-2">
-            <strong className="text-lg">Question:</strong>{" "}
-            <span className="text-lg">{rfpRecord.question}</span>
-          </p>
-          <p className="mb-2">
-            <strong className="text-lg">Answer:</strong>{" "}
-            <span className="text-lg">{rfpRecord.answer}</span>
-          </p>
+      {/* RFP QA Record Card */}
+      <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <h2 className="text-2xl font-bold mb-4">RFP QA Record</h2>
+        <div className="space-y-4">
+          <div>
+            <label className="block text-lg font-semibold mb-2">Question:</label>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <Markdown remarkPlugins={[remarkGfm]}>{rfpRecord.question}</Markdown>
+            </div>
+          </div>
+          <div>
+            <label className="block text-lg font-semibold mb-2">Answer:</label>
+            <div className="p-4 bg-gray-50 rounded-lg">
+              <Markdown remarkPlugins={[remarkGfm]}>{rfpRecord.answer}</Markdown>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Proposed FAQ Form */}
-      <div className="card">
-        <h2 className="text-2xl font-bold text-primary">Proposed FAQ</h2>
-        <div className="mb-4">
-          <button onClick={handleGenerateFaq} className="btn btn-primary">
+      {/* Proposed FAQ Card */}
+      <div className="bg-white shadow-lg rounded-lg p-6 mb-6">
+        <h2 className="text-2xl font-bold mb-4">Proposed FAQ</h2>
+        <div className="mb-6">
+          <button
+            onClick={handleGenerateFaq}
+            className="bg-orange-600 text-white hover:bg-orange-700 px-6 py-2 rounded-md"
+          >
             Generate FAQ
           </button>
         </div>
-        <div className="mb-4">
-          <label htmlFor="question" className="block font-bold">
-            Question:
-          </label>
-          <div className="border rounded-md overflow-hidden">
+
+        {/* Question and Answer Fields */}
+        <div className="space-y-6">
+          <div>
+            <label className="block text-lg font-semibold mb-2">Question:</label>
             <SimpleMDE
-              id="question"
               value={proposedQuestion}
-              onChange={setProposedQuestion}
-              options={{
-                spellChecker: false,
-                status: false,
-                minHeight: "100px",
-                maxHeight: "200px",
-                toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
-              }}
+              onChange={handleQuestionChange}
+              options={editorOptions}
             />
           </div>
-        </div>
-        <div className="mb-4">
-          <label htmlFor="answer" className="block font-bold">
-            Answer:
-          </label>
-          <div className="border rounded-md overflow-hidden">
+          <div>
+            <label className="block text-lg font-semibold mb-2">Answer:</label>
             <SimpleMDE
-              id="answer"
               value={proposedAnswer}
-              onChange={setProposedAnswer}
+              onChange={handleAnswerChange}
               options={editorOptions}
             />
           </div>
         </div>
-        {/* LLM Interaction Field */}
-        <div className="mb-4">
-          <label htmlFor="userInput" className="block font-bold">
-            LLM Interaction:
-          </label>
-          <div className="flex">
+
+        {/* LLM Interaction */}
+        <div className="mt-6 space-y-4">
+          <label className="block text-lg font-semibold">LLM Interaction:</label>
+          <div className="flex space-x-2">
             <input
               type="text"
-              id="userInput"
               value={userInput}
               onChange={(e) => setUserInput(e.target.value)}
               onKeyDown={(e) => {
@@ -367,41 +357,47 @@ export default function CreateFaqDetailPage() {
                   e.preventDefault();
                 }
               }}
-              className="border p-2 w-full"
+              placeholder="Ask me to help improve the FAQ..."
+              className="flex-1 border rounded-md p-2"
             />
             <button
               onClick={handleSendMessage}
-              className="btn btn-primary ml-2"
+              className="bg-orange-600 text-white hover:bg-orange-700 px-4 py-2 rounded-md"
             >
               Send
             </button>
           </div>
-        </div>
-        {/* Dialogue History */}
-        <div className="mb-4">
-          <label className="block font-bold mb-2">Dialogue History:</label>
-          <div className="border p-2 h-48 overflow-y-auto bg-gray-50">
-            {dialogueHistory.map((message, index) => (
-              <div key={index} className={`mb-2 p-2 rounded ${message.role === "user" ? "bg-blue-50" : "bg-white"}`}>
-                <strong className={message.role === "user" ? "text-blue-600" : "text-green-600"}>
-                  {message.role === "user" ? "You" : "Assistant"}:
-                </strong>{" "}
-                {message.content}
-              </div>
-            ))}
+
+          {/* Dialogue History */}
+          <div className="border rounded-lg p-4 bg-gray-50 h-48 overflow-y-auto">
+            {dialogueHistory.length === 0 ? (
+              <p className="text-gray-500">No messages yet. Start a conversation!</p>
+            ) : (
+              dialogueHistory.map((message, index) => (
+                <div
+                  key={index}
+                  className={`mb-2 p-2 rounded ${
+                    message.role === "user" ? "bg-blue-50" : "bg-white"
+                  }`}
+                >
+                  <strong className={message.role === "user" ? "text-blue-600" : "text-green-600"}>
+                    {message.role === "user" ? "You" : "Assistant"}:
+                  </strong>{" "}
+                  {message.content}
+                </div>
+              ))
+            )}
           </div>
         </div>
-        {/* Visibility and Status Fields on the Same Line */}
-        <div className="mb-4 flex space-x-4">
+
+        {/* Metadata Fields */}
+        <div className="mt-6 grid grid-cols-2 gap-6">
           <div>
-            <label htmlFor="visibility" className="block font-bold">
-              Visibility:
-            </label>
+            <label className="block text-sm font-semibold mb-2">Visibility:</label>
             <select
-              id="visibility"
               value={visibility}
               onChange={(e) => setVisibility(e.target.value)}
-              className="border p-2"
+              className="w-full border rounded-md p-2"
             >
               <option value="private">Private</option>
               <option value="public">Public</option>
@@ -414,14 +410,11 @@ export default function CreateFaqDetailPage() {
             </select>
           </div>
           <div>
-            <label htmlFor="status" className="block font-bold">
-              Status:
-            </label>
+            <label className="block text-sm font-semibold mb-2">Status:</label>
             <select
-              id="status"
               value={status || "draft"}
               onChange={(e) => setStatus(e.target.value)}
-              className="border p-2"
+              className="w-full border rounded-md p-2"
             >
               <option value="draft">Draft</option>
               <option value="pending_review">Pending Review</option>
@@ -432,44 +425,53 @@ export default function CreateFaqDetailPage() {
             </select>
           </div>
         </div>
+
         {/* Notes Field */}
-        <div className="mb-4">
-          <label htmlFor="notes" className="block font-bold">
-            Notes:
-          </label>
+        <div className="mt-6">
+          <label className="block text-sm font-semibold mb-2">Notes:</label>
           <textarea
-            id="notes"
             value={notes || ""}
             onChange={(e) => setNotes(e.target.value)}
-            className="border p-2 w-full"
+            className="w-full border rounded-md p-2 h-32"
+            placeholder="Add any notes about this FAQ..."
           />
         </div>
-        <button onClick={handleSaveFaq} className="btn btn-primary">
-          Save FAQ
-        </button>
+
+        {/* Save Button */}
+        <div className="mt-6 flex justify-end">
+          <button
+            onClick={handleSaveFaq}
+            className="bg-orange-600 text-white hover:bg-orange-700 px-6 py-2 rounded-md"
+          >
+            Save FAQ
+          </button>
+        </div>
       </div>
 
       {/* Related FAQs */}
-      <div className="mt-8">
-        <h2 className="text-2xl font-bold text-primary mb-4">Related FAQs</h2>
-        <div className="ag-theme-alpine h-[300px] w-full">
+      <div className="bg-white shadow-lg rounded-lg p-6">
+        <h2 className="text-2xl font-bold mb-4">Related FAQs</h2>
+        <div className="ag-theme-alpine" style={{ height: 400 }}>
           <AgGridReact
             rowData={relatedFaqs}
             columnDefs={relatedFaqColumnDefs}
-            domLayout="autoHeight"
             defaultColDef={{
               sortable: true,
+              filter: true,
               resizable: true,
             }}
           />
         </div>
       </div>
-      <Link
-        href="/create-faq"
-        className="inline-block mt-4 text-primary hover:text-secondary underline"
-      >
-        Back to Create FAQ
-      </Link>
+
+      <div className="mt-6">
+        <Link
+          href="/create-faq"
+          className="text-orange-600 hover:text-orange-700 underline"
+        >
+          Back to Create FAQ
+        </Link>
+      </div>
     </div>
   );
 }

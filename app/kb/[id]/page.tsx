@@ -1,8 +1,8 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import SimpleMDE from 'react-simplemde-editor';
+import dynamic from 'next/dynamic';
 import LLMChat from '@/components/LLMChat';
 import { useLLM } from '@/lib/hooks/useLLM';
 import 'easymde/dist/easymde.min.css';
@@ -22,6 +22,10 @@ interface KbEntry {
     citations?: Array<{ number: number; url: string }>;
   };
 }
+
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false
+});
 
 export default function EditKbEntryPage({ params }: { params: { id: string } }) {
   const router = useRouter();
@@ -71,10 +75,16 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
     setEntry((prev) => prev ? ({ ...prev, [name]: value }) : null);
   };
 
-  const handleEditorChange = (value: string) => {
+  const editorOptions = useMemo(() => ({
+    spellChecker: false,
+    status: false,
+    toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+  }), []);
+
+  const handleEditorChange = useMemo(() => (value: string) => {
     if (!entry) return;
     setEntry((prev) => prev ? ({ ...prev, article_body: value }) : null);
-  };
+  }, [entry]);
 
   const handleAddCitation = (citation: { number: number; url: string }) => {
     if (!entry) return;
@@ -91,6 +101,37 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
     });
   };
 
+  // Function to extract citation numbers from content
+  const extractCitations = (content: string): number[] => {
+    const matches = content.match(/\[(\d+)\]/g) || [];
+    return matches.map(match => parseInt(match.replace(/[\[\]]/g, '')));
+  };
+
+  // Function to cleanup unused citations
+  const cleanupCitations = (content: string, citations: Array<{ number: number; url: string }>) => {
+    const usedCitations = extractCitations(content);
+    return citations.filter(citation => usedCitations.includes(citation.number));
+  };
+
+  // Function to update footnotes section
+  const updateFootnotesSection = (content: string, citations: Array<{ number: number; url: string }>) => {
+    // Remove existing footnotes section if it exists
+    const contentWithoutFootnotes = content.replace(/\n*## References\n(\[\d+\]:.+\n)*/g, '');
+    
+    if (citations.length === 0) {
+      return contentWithoutFootnotes;
+    }
+
+    // Create new footnotes section
+    const footnotesSection = '\n\n## References\n' + 
+      citations
+        .sort((a, b) => a.number - b.number)
+        .map(citation => `[${citation.number}]: ${citation.url}`)
+        .join('\n');
+
+    return contentWithoutFootnotes + footnotesSection;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!entry) return;
@@ -99,13 +140,34 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
     setError(null);
 
     try {
+      // Clean up citations
+      const cleanedCitations = cleanupCitations(
+        entry.article_body,
+        entry.metadata.citations || []
+      );
+
+      // Update article body with cleaned citations
+      const updatedBody = updateFootnotesSection(
+        entry.article_body,
+        cleanedCitations
+      );
+
+      const updatedEntry = {
+        ...entry,
+        article_body: updatedBody,
+        metadata: {
+          ...entry.metadata,
+          citations: cleanedCitations,
+        },
+      };
+
       // Verify content before saving
       const verificationResult = await verifyContent(
-        entry.article_body,
+        updatedBody,
         JSON.stringify({
           title: entry.article_title,
           category: entry.category,
-          citations: entry.metadata.citations,
+          citations: cleanedCitations,
         })
       );
 
@@ -119,7 +181,7 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(entry),
+        body: JSON.stringify(updatedEntry),
       });
 
       if (!response.ok) {
@@ -280,10 +342,7 @@ export default function EditKbEntryPage({ params }: { params: { id: string } }) 
               <SimpleMDE
                 value={entry.article_body}
                 onChange={handleEditorChange}
-                options={{
-                  spellChecker: false,
-                  status: ['lines', 'words'],
-                }}
+                options={editorOptions}
               />
             </div>
 

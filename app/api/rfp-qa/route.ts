@@ -1,6 +1,6 @@
 // app/api/rfp-qa/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 
 export async function GET(req: NextRequest) {
   const searchParams = req.nextUrl.searchParams;

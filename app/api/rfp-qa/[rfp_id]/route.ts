@@ -1,6 +1,6 @@
 // app/api/rfp-qa/[rfp_id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 
 interface Params {
   rfp_id: string;

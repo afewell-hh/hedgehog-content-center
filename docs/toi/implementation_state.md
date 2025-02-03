@@ -4,10 +4,10 @@
 - Next.js application with TypeScript and app directory structure
 - PostgreSQL database with Prisma ORM for data persistence
 - AG Grid for efficient data display and interaction
-- OpenAI GPT-3.5-turbo integration for FAQ generation
+- OpenAI GPT-4 integration for content generation and verification
 - TailwindCSS for styling
-- SimpleMDE for Markdown editing
-- TipTap Editor for rich text editing
+- SimpleMDE for Markdown editing (both question and answer fields)
+- DuckDuckGo integration for technical verification
 
 ## Completed Features
 
@@ -30,18 +30,20 @@
     2. Detail view with LLM interaction
   - Features:
     - AI-assisted content generation
-    - Interactive LLM dialogue
+    - Interactive LLM dialogue with technical verification
     - Real-time content refinement
-    - Dialogue history tracking
+    - Dialogue history tracking with fixed height and scrollbar
     - Status and visibility management
     - Notes field
-    - Related FAQ display
+    - Related FAQ display using AG Grid
+    - SimpleMDE for both question and answer fields
+    - Consistent card-based layout
 - Location:
   - List view: `/app/create-faq/page.tsx`
   - Detail view: `/app/create-faq/[rfp_id]/page.tsx`
   - LLM API: `/app/api/llm/route.ts`
   - FAQ API: `/app/api/faq/route.ts`
-- Dependencies: OpenAI API, SimpleMDE, Prisma, PostgreSQL
+- Dependencies: OpenAI API, SimpleMDE, Prisma, PostgreSQL, DuckDuckGo search
 
 ### FAQ Management (/app/faq/)
 - Description: Interface for browsing and editing FAQ entries
@@ -49,181 +51,139 @@
   - AG Grid with filtering
   - Status management (draft/review/approved/archived)
   - Visibility controls (public/private)
-  - Enhanced markdown editing with SimpleMDE
-    - Dynamic imports to prevent SSR issues
-    - Memoized editor options
-    - Fixed minimum heights (100px question, 200px answer)
-  - Rich text editing with TipTap
-  - Internal notes field
-  - LLM-assisted content refinement
-  - Related FAQ display with AG Grid
-    - Markdown rendering for answers
-    - Clickable ID links
-    - Pagination support
+  - Enhanced detail page features:
+    - Previous/Next record navigation with "Previous Record" and "Next Record" buttons
+    - White buttons with orange border and text for navigation
+    - LLM interaction with dialogue history
+    - SimpleMDE for question and answer editing
+    - Related FAQs display using AG Grid
+    - Consistent card-based layout matching create-faq
 - Location:
   - List view: `/app/faq/page.tsx`
   - Detail view: `/app/faq/[id]/page.tsx`
-  - Editor component: `/app/components/FaqEditor.tsx`
-  - LLM component: `/app/components/LlmInteraction.tsx`
-  - Related FAQs component: `/app/components/RelatedFaqs.tsx`
-  - API endpoints:
-    - `/api/faq/[id]`: Single FAQ operations
-    - `/api/faq/related/[id]`: Related FAQs
-    - `/api/llm`: LLM interactions
-- Dependencies: AG Grid, Prisma, PostgreSQL, OpenAI API, SimpleMDE, TipTap Editor
+  - Navigation API: `/app/api/faq/[id]/navigation/route.ts`
+  - FAQ API: `/app/api/faq/[id]/route.ts`
+  - Related FAQs API: `/app/api/faq/related/[id]/route.ts`
+- Dependencies: AG Grid, SimpleMDE, Prisma, PostgreSQL, OpenAI API
 
-### LLM Integration
-
-#### FAQ Generation API
-- **Endpoint**: `/api/llm`
-- **Method**: POST
-- **Modes**: 
-  - `generate`: Creates new FAQ entries from RFP Q&A content
-  - `dialogue`: Supports interactive refinement of FAQ entries
-- **Features**:
-  - Enhanced error handling at both client and server levels
-  - Input validation and structured error responses
-  - Improved system prompts for better FAQ generation
-  - Environment variable validation
-
-#### Web Search Integration
-- Integrated DuckDuckGo search functionality
-- Site-specific search on githedgehog.com
-- Results limited to top 3 most relevant matches
-- Technical verification of FAQ content
-- Error handling for failed searches
-
-#### Error Handling
-- Comprehensive try-catch blocks for API calls
-- Detailed error logging and user feedback
-- Input validation for all endpoints
-- Structured error responses
-- Environment variable validation
-- Graceful handling of OpenAI API errors
-
-### Data Models
-
-#### FAQ Model
-```typescript
-{
-  id: number,
-  question: string,
-  answer: string,
-  visibility: string,   // public/private
-  status: string,       // draft/review/approved/archived
-  notes: string | null, // Internal notes
-  metadata: any,
-  rfpQaId: number,     // Relation to RFP Q&A
-  created_at: DateTime,
-  updated_at: DateTime
-}
-```
-
-#### FAQ Generation Request
-```typescript
-{
-  mode: "generate",
-  question: string,  // RFP question
-  answer: string     // RFP answer
-}
-```
-
-#### FAQ Generation Response
-```typescript
-{
-  question: string,  // Generated FAQ question
-  answer: string     // Generated FAQ answer
-}
-```
-
-#### Dialogue Request
-```typescript
-{
-  mode: "dialogue",
-  userInput: string,
-  currentFaq: {
-    question: string,
-    answer: string
-  }
-}
-```
-
-#### Dialogue Response
-```typescript
-{
-  message?: string,           // Optional dialogue message
-  question?: string,          // Updated FAQ question (if changed)
-  answer?: string,           // Updated FAQ answer (if changed)
-  functionCall?: string      // Type of update performed
-}
-```
-
-### Environment Variables
-- `OPENAI_API_KEY`: Required for OpenAI API access
+### Knowledge Base Management (/app/kb/)
+- Description: Comprehensive system for managing Knowledge Base entries
+- Implementation:
+  - Core Features:
+    - AG Grid list view with category filtering
+    - Detail view with SimpleMDE editor
+    - LLM chat assistant for content creation
+    - Citation management system
+    - Import/Export functionality with CSV support
+    - Category-based organization
+    - Status tracking (Draft/Review/Approved/Archived)
+    - Visibility control (Public/Private)
+    - Technical verification system
+  - Navigation:
+    - Main KB list page
+    - New entry page
+    - Edit entry page
+    - Import page
+    - Export page
+  - LLM Integration:
+    - Content generation assistance
+    - Citation processing
+    - Technical verification
+    - Interactive chat interface
+- Location:
+  - List view: `/app/kb/page.tsx`
+  - Detail view: `/app/kb/[id]/page.tsx`
+  - New entry: `/app/kb/new/page.tsx`
+  - Import: `/app/kb/import/page.tsx`
+  - Export: `/app/kb/export/page.tsx`
+  - KB API: `/app/api/kb-entries/route.ts`
+  - KB Entry API: `/app/api/kb-entries/[id]/route.ts`
+  - KB LLM API: `/app/api/kb-llm/route.ts`
+  - LLM Service: `/lib/llm/openai.ts`
+  - LLM Hook: `/lib/hooks/useLLM.ts`
+  - LLM Chat Component: `/components/LLMChat.tsx`
+- Dependencies: AG Grid, SimpleMDE, Prisma, PostgreSQL, OpenAI API, DuckDuckGo search
 
 ## In Progress Features
-No features currently in progress.
+None - All planned features are currently implemented
 
-## Known Issues
-No known issues in the current implementation.
+## Known Issues and Implementation Requirements
+
+### SimpleMDE Editor Implementation
+**CRITICAL: DO NOT REMOVE OR MODIFY THIS SECTION WITHOUT EXPLICIT APPROVAL**
+
+The application uses SimpleMDE editors extensively for Markdown editing. A recurring focus loss issue has been identified and resolved multiple times. This section documents the current state and requirements.
+
+#### Current Implementation Status
+- All SimpleMDE instances MUST follow this exact pattern:
+```typescript
+// 1. Dynamic Import
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false  // Required to prevent hydration issues
+});
+
+// 2. Memoized Options
+const editorOptions = useMemo(() => ({
+  spellChecker: false,
+  status: false,
+  toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+}), []);
+
+// 3. Memoized Change Handler (CRITICAL)
+const handleChange = useMemo(() => (value: string) => {
+  setValue(value);
+}, []);
+
+// 4. Component Usage
+<SimpleMDE
+  value={value}
+  onChange={handleChange}
+  options={editorOptions}
+/>
+```
+
+#### Implementation Locations
+The pattern is currently implemented in:
+1. `/app/faq/new/page.tsx`
+2. `/app/create-faq/[rfp_id]/page.tsx`
+3. `/app/faq/[id]/page.tsx`
+4. `/app/kb/new/page.tsx`
+5. `/app/kb/[id]/page.tsx`
+
+#### Error Identification
+The focus loss bug manifests as:
+- Cursor jumping to start
+- Required repeated clicking
+
+If these symptoms appear, verify implementation against this pattern.
 
 ## Critical Dependencies
+1. OpenAI API
+   - Version: GPT-4
+   - Purpose: Content generation, verification, and citation processing
+   - Integration: `/lib/llm/openai.ts`
 
-### Frontend
-- Next.js: ^14.0.0
-- AG Grid Community: Latest version
-- AG Grid React: Latest version
-- TailwindCSS: Latest version
-- SimpleMDE React: Latest version
-- React Markdown: Latest version
-- Remark GFM: Latest version
-- TipTap Editor: Latest version
+2. Prisma ORM
+   - Version: Latest
+   - Purpose: Database operations
+   - Schema: `/prisma/schema.prisma`
 
-### Backend
-- PostgreSQL: Latest version
-- Prisma: Latest version
-- OpenAI API: Latest version
-- Node.js: ^18.0.0
+3. AG Grid
+   - Version: Latest
+   - Purpose: Data display and interaction
+   - CSS: Imported in layout.tsx
 
-### Development
-- TypeScript: ^5.0.0
-- ESLint: Latest version
-- PostCSS: Latest version
+4. SimpleMDE
+   - Version: Latest
+   - Purpose: Markdown editing
+   - Implementation: See SimpleMDE section above
 
-## Integration Points
+5. DuckDuckGo Search
+   - Purpose: Technical verification
+   - Integration: `/lib/llm/openai.ts`
 
-### Database Schema
-- RFP_QA table:
-  - id (PK)
-  - question
-  - answer
-  - metadata (JSONB)
-  - created_at
-  - updated_at
-
-- FAQ table:
-  - id (PK)
-  - question
-  - answer
-  - visibility
-  - status
-  - notes
-  - metadata (JSONB, includes rfp_id)
-  - created_at
-  - updated_at
-
-### API Endpoints
-- `/api/rfp-qa/`:
-  - GET: List/search RFP Q&A records
-  - GET /{id}: Get specific record
-  - GET /next/{id}: Get next record
-  - GET /prev/{id}: Get previous record
-
-- `/api/faq/`:
-  - GET: List/search FAQs
-  - POST: Create new FAQ
-  - GET /related/{rfp_id}: Get related FAQs
-
-- `/api/llm/`:
-  - POST: Generate/refine FAQ content
-  - Modes: generate, dialogue
+## Environment Variables
+Required variables:
+```
+DATABASE_URL="postgresql://username:password@localhost:5432/your_database_name"
+OPENAI_API_KEY="your-api-key-here"

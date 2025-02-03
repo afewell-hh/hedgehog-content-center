@@ -1,6 +1,6 @@
 // app/api/faq/next/[id]/route.ts
 import { NextRequest, NextResponse } from "next/server";
-import { prisma } from "../../../../lib/prisma";
+import { prisma } from "@/app/lib/prisma";
 
 interface Params {
   id: string;

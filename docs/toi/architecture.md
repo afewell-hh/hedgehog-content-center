@@ -1,7 +1,7 @@
 # Project Architecture
 
 ## Project Overview
-The Hedgehog Content Center is a web application designed to manage and transform RFP Q&A content into FAQ entries. It provides a workflow for browsing RFP Q&A records, generating FAQ entries with AI assistance, and managing the resulting FAQ content.
+The Hedgehog Content Center is a web application designed to manage and transform RFP Q&A content into FAQ entries, and maintain a comprehensive Knowledge Base. It provides workflows for browsing RFP Q&A records, generating FAQ entries with AI assistance, and managing Knowledge Base content with advanced features like LLM-assisted content creation and citation management.
 
 ## Key Concepts
 1. RFP Q&A Management
@@ -15,13 +15,26 @@ The Hedgehog Content Center is a web application designed to manage and transfor
    - Two-mode LLM interaction system:
      - Initial FAQ generation mode
      - Interactive dialogue mode for refinement
-   - Markdown support for FAQ content
+   - Technical verification through DuckDuckGo search
+   - Markdown editing for both questions and answers
    - Status and visibility management
    - Notes and metadata tracking
+   - Consistent card-based layouts
 
-3. Content Association
+3. Knowledge Base Management
+   - Comprehensive content management system
+   - LLM-assisted content creation and editing
+   - Citation management and verification
+   - Import/Export functionality with CSV support
+   - Category-based organization
+   - Status tracking (Draft/Review/Approved/Archived)
+   - Visibility control (Public/Private)
+   - Technical verification system
+   - Interactive chat interface for content assistance
+
+4. Content Association
    - Metadata linking between RFP Q&A and FAQ entries
-   - Related FAQ tracking and display
+   - Related FAQ tracking and display using AG Grid
    - Version and status management
    - Visibility states: private, public, draft, pending_review, approved, rejected, archived, needs-work
 
@@ -34,253 +47,252 @@ The Hedgehog Content Center is a web application designed to manage and transfor
   - `/app/create-faq/`: FAQ generation workflow
     - Record selection view with AG Grid
     - Detail view with LLM interaction
+    - SimpleMDE for both question and answer fields
+    - Previous/Next Record navigation (white buttons with orange border)
   - `/app/faq/`: FAQ browsing and management interface
     - List view with AG Grid
-    - Detail view with SimpleMDE and TipTap editors
-    - Related FAQs display
+    - Detail view with SimpleMDE editors
+    - Related FAQs display with AG Grid
+    - Previous/Next Record navigation (white buttons with orange border)
+  - `/app/kb/`: Knowledge Base management
+    - List view with AG Grid and category filtering
+    - Detail view with SimpleMDE editor
+    - LLM chat assistant for content creation
+    - Citation management system
+    - Import/Export functionality
 - Dependencies: 
   - Next.js
   - AG Grid
   - TailwindCSS
   - SimpleMDE (dynamic import)
-  - TipTap Editor
   - React Markdown
+  - Remark GFM
+  - OpenAI SDK
 - File locations: 
   - `/app/rfp-qa/page.tsx`: Main RFP Q&A listing
   - `/app/create-faq/page.tsx`: FAQ creation entry point
   - `/app/create-faq/[rfp_id]/page.tsx`: FAQ generation interface
-  - `/app/faq/page.tsx`: FAQ browsing interface
-  - `/app/faq/[id]/page.tsx`: FAQ detail view
+  - `/app/faq/[id]/page.tsx`: FAQ detail page
+  - `/app/kb/page.tsx`: KB entries list
+  - `/app/kb/[id]/page.tsx`: KB entry edit page
+  - `/app/kb/new/page.tsx`: New KB entry page
+  - `/app/kb/import/page.tsx`: Import KB entries
+  - `/app/kb/export/page.tsx`: Export KB entries
+  - `/app/api/`: API routes
   - `/app/components/`: Shared components
-    - `FaqEditor.tsx`: FAQ editing interface
-    - `LlmInteraction.tsx`: LLM chat interface
-    - `RelatedFaqs.tsx`: Related FAQs grid
-- Update triggers: User interactions, API responses, LLM completions
+  - `/lib/llm/`: LLM service and utilities
+  - `/lib/hooks/`: Custom React hooks
 
-### Backend API
+### Backend (API Routes)
 - Purpose: Handle data operations and LLM integration
-- Key interfaces: 
-  - `/api/rfp-qa/`: RFP Q&A CRUD operations
+- Key endpoints:
+  - `/api/rfp-qa/`: RFP Q&A operations
   - `/api/faq/`: FAQ CRUD operations
-    - `[id]`: Single FAQ operations
-    - `related/[id]`: Related FAQs lookup
-  - `/api/llm/`: LLM interaction endpoint
-    - Generation mode
-    - Dialogue mode
-    - Web search integration
-- Dependencies: 
-  - PostgreSQL: Data persistence
-  - OpenAI API: LLM integration
-  - DuckDuckGo: Web search
-  - Prisma: ORM layer
-- File locations: `/app/api/`
-- Update triggers: Frontend requests, database changes
-
-### LLM Integration
-- Purpose: AI-assisted FAQ generation and refinement
-- Components:
-  - Generation mode: Creates initial FAQ from RFP content
-  - Dialogue mode: Interactive refinement of proposed FAQ
-  - Web search: Technical verification using githedgehog.com
-- Implementation:
-  - Model: GPT-3.5-turbo
-  - Function calling for structured outputs
-  - System prompts for maintaining context
-  - Temperature: 0.7 for balanced creativity
-  - Error handling:
-    - Input validation
-    - Structured error responses
-    - Environment variable validation
-    - User-friendly error messages
-- File location: `/app/api/llm/route.ts`
+  - `/api/faq/[id]/`: Single FAQ operations
+  - `/api/faq/[id]/navigation/`: Previous/Next navigation
+  - `/api/faq/related/[id]/`: Related FAQ retrieval
+  - `/api/llm/`: LLM interaction and FAQ generation
+  - `/api/kb-entries/`: KB entries collection operations
+  - `/api/kb-entries/[id]/`: Single KB entry operations
+  - `/api/kb-llm/`: KB-specific LLM operations
+- Dependencies:
+  - Prisma ORM
+  - PostgreSQL
+  - OpenAI API
+  - DuckDuckGo search
 
 ### Database (PostgreSQL)
-- Purpose: Persistent storage of RFP and FAQ content
-- Key tables: 
-  - rfp_qa: Stores RFP questions and answers
-  - faq: Stores generated FAQs with metadata
-    - Added relation to rfp_qa table
-    - Enhanced status tracking
-    - Added notes field
-- File locations: `/prisma/`: Schema and migrations
-- Update triggers: API operations
+- Purpose: Persistent storage for all content
+- Key models:
+  - RfpQa: Source Q&A content
+    - Fields: id, question, answer, metadata, created_at, updated_at
+    - Relations: One-to-many with FAQ model
+  - Faq: Generated FAQ entries
+    - Fields: id, question, answer, visibility, status, notes, metadata, created_at, updated_at
+    - Relations: Optional relation to RfpQa for tracking source
+    - Status options: draft, review, approved, archived
+    - Visibility options: public, private
+  - KbEntries: Knowledge Base entries
+    - Fields: id, article_title, article_subtitle, article_body, category, subcategory, keywords, internal_status, visibility, notes, metadata
+    - Status options: Draft, Review, Approved, Archived
+    - Visibility options: Public, Private
+    - Metadata includes: citations, technical verification results
+- Schema location: `/prisma/schema.prisma`
 
-## LLM Integration Architecture
-
-### Overview
-The LLM integration is designed to provide intelligent FAQ generation and refinement capabilities. It combines OpenAI's GPT-3.5-turbo model with web search functionality to ensure technically accurate and audience-appropriate content generation.
-
-### Components
-
-#### 1. LLM API Service (`/app/api/llm/route.ts`)
-- **Purpose**: Handles all LLM-related operations
-- **Features**:
-  - FAQ generation from RFP content
-  - Interactive dialogue for FAQ refinement
-  - Web search integration for technical verification
-  - Error handling and input validation
-  - Structured output via function calling
-
-#### 2. Web Search Service
-- **Purpose**: Verify technical details using Hedgehog's public documentation
-- **Implementation**: 
-  - Uses DuckDuckGo's HTML endpoint
-  - Site-specific search on githedgehog.com
-  - Result parsing and formatting
-  - Error handling for failed searches
-
-### System Prompts
-
-#### FAQ Generation Prompt
-- **Objectives**:
-  1. Create user-friendly, public-facing FAQs
-  2. Maintain confidentiality
-  3. Target appropriate audience level
-  4. Ensure technical accuracy
-- **Guidelines**:
-  - Remove customer-specific information
-  - Simplify technical jargon
-  - Verify technical details when generalizing
-  - Format consistently
-
-#### Dialogue Prompt
-- **Objectives**:
-  1. Guide FAQ refinement process
-  2. Maintain context awareness
-  3. Suggest improvements
-- **Guidelines**:
-  - Consider user feedback
-  - Maintain technical accuracy
-  - Preserve formatting consistency
-
-### Function Definitions
-
-#### Search Function
-```typescript
-search_githedgehog: {
-  description: "Search githedgehog.com for technical information",
-  parameters: {
-    query: string  // Search query
-  }
-}
-```
-
-#### FAQ Generation Function
-```typescript
-return_faq: {
-  description: "Returns the generated FAQ entry",
-  parameters: {
-    question: string,  // FAQ question
-    answer: string    // FAQ answer
-  }
-}
-```
-
-### Data Flow
-
-1. **FAQ Generation**:
-   ```
-   RFP Q&A → LLM Analysis → (Optional Web Search) → FAQ Generation → Response
-   ```
-
-2. **Interactive Dialogue**:
-   ```
-   User Input → Context Loading → LLM Analysis → (Optional Web Search) → 
-   FAQ Update/Response → Response
-   ```
-
-### Error Handling Architecture
-
-1. **Client-Side**:
-   - API call wrapping
-   - Response validation
-   - Error message parsing
-   - User feedback
-
-2. **Server-Side**:
-   - Input validation
-   - API error handling
-   - Search error handling
-   - Structured error responses
-
-### Security Considerations
-
-1. **API Key Management**:
-   - Environment variable based
-   - Server-side only access
-
-2. **Data Privacy**:
-   - No customer data storage
-   - Prompt-based confidentiality rules
-   - Public domain search only
+### LLM Integration
+- Purpose: Provide AI assistance for content creation and management
+- Components:
+  - OpenAI Service (`/lib/llm/openai.ts`)
+    - Content generation
+    - Citation processing
+    - Technical verification
+  - LLM Chat Component (`/components/LLMChat.tsx`)
+    - Interactive chat interface
+    - Real-time content updates
+    - Citation management
+  - Custom Hook (`/lib/hooks/useLLM.ts`)
+    - State management
+    - API interaction
+    - Error handling
+- Dependencies:
+  - OpenAI API (GPT-4)
+  - Web search for verification
+  - Citation extraction system
 
 ## Implementation Details
 
-### RFP Q&A Browsing
-- AG Grid implementation for efficient data display
-- Server-side search functionality
-- Record navigation (Previous/Next)
-- Markdown rendering support
+### Navigation Pattern
+1. Previous/Next Record Navigation
+   - Location: FAQ detail, create-faq, and KB detail pages
+   - Styling:
+     - White background
+     - Orange border (border-orange-600)
+     - Orange text (text-orange-600)
+     - Hover effect (hover:bg-orange-50)
+   - Button text: "Previous Record" and "Next Record"
+   - Implementation:
+     ```typescript
+     <button
+       className="px-4 py-2 border border-orange-600 text-orange-600 rounded hover:bg-orange-50"
+       onClick={handlePrevious}
+     >
+       Previous Record
+     </button>
+     ```
 
-### FAQ Generation Workflow
-1. RFP record selection from grid view
-2. AI-assisted FAQ generation
-   - System prompt ensures:
-     - Confidentiality (removes customer-specific info)
-     - Appropriate audience targeting
-     - Clear formatting
-3. Interactive content refinement
-   - Real-time LLM dialogue
-   - Direct question/answer editing
-   - Dialogue history tracking
-4. Metadata management
-   - Visibility control
-   - Status tracking
-   - Notes field
-5. Related FAQ tracking
-   - Display of associated FAQs
-   - Metadata-based relationship tracking
+### LLM Integration Pattern
+1. Service Layer
+   ```typescript
+   class LLMService {
+     async generateContent(prompt: string, context: string): Promise<string>;
+     async processWithCitations(text: string): Promise<CitationResult>;
+     async verifyContent(content: string, context: string): Promise<VerificationResult>;
+   }
+   ```
 
-### Data Models
-- RFP Q&A: 
-  - id: number
-  - question: string
-  - answer: string
-  - metadata: object
-- FAQ:
-  - id: number
-  - question: string
-  - answer: string
-  - visibility: string
-  - status: string
-  - notes: string
-  - metadata: object (includes rfp_id reference)
+2. React Hook
+   ```typescript
+   function useLLM() {
+     const generateContent = async (prompt: string, context: string) => {...};
+     const processCitations = async (text: string) => {...};
+     const verifyContent = async (content: string, context: string) => {...};
+     return { loading, error, generateContent, processCitations, verifyContent };
+   }
+   ```
+
+3. Chat Component
+   ```typescript
+   function LLMChat({ context, onUpdateContent, onAddCitation }) {
+     const { loading, generateContent, processCitations } = useLLM();
+     // Implementation details...
+   }
+   ```
+
+### React Patterns
+1. React Hooks
+   - useState for local state
+   - useEffect for side effects
+   - useMemo for performance
+   - React.use() for params
+   - Custom hooks for reusable logic
+
+2. Component Organization
+   - Page components in app directory
+   - Shared components in components directory
+   - Utility functions in lib directory
+   - API routes in api directory
+
+3. Data Flow
+   - Props for parent-child communication
+   - Context for global state
+   - API calls for data persistence
+   - LLM service for AI operations
+
+4. Error Handling
+   - Try-catch blocks in async operations
+   - Error boundaries for component errors
+   - Loading states for async operations
+   - User-friendly error messages
 
 ## Development Guidelines
 1. Code Organization
-   - Next.js app directory structure
-   - API routes in `/app/api/`
-   - Shared components in `/app/components/`
-   - Type definitions for data models
+   - Follow Next.js app directory structure
+   - Keep components focused and reusable
+   - Use TypeScript for type safety
+   - Implement proper error handling
 
-2. Best Practices
-   - TypeScript for type safety
-   - Server-side data fetching
-   - Client-side state management with React hooks
-   - AI interaction patterns for content generation
-   - Error handling and validation
-   - Markdown support for rich text
+2. State Management
+   - Use React hooks for local state
+   - Implement proper loading states
+   - Handle errors gracefully
+   - Maintain consistent data flow
 
-3. Standards
-   - ESLint configuration
-   - Prisma schema conventions
-   - API response formats
-   - LLM prompt engineering patterns
+3. UI/UX Standards
+   - Use TailwindCSS for styling
+   - Follow consistent color scheme
+   - Implement responsive design
+   - Provide loading indicators
 
-4. Patterns to Follow
-   - React Server Components where applicable
-   - API route organization by resource
-   - Error handling and validation
-   - LLM interaction patterns
-   - Status and visibility management
-   - Content relationship tracking
+4. API Design
+   - RESTful endpoints
+   - Proper error responses
+   - Input validation
+   - Consistent response format
+
+5. Database Operations
+   - Use Prisma for type safety
+   - Implement proper transactions
+   - Handle edge cases
+   - Maintain data integrity
+
+## SimpleMDE Implementation Pattern
+**CRITICAL: DO NOT REMOVE OR MODIFY THIS SECTION**
+
+The SimpleMDE editor is used for all Markdown editing in the application. This pattern MUST be followed exactly to prevent focus loss issues:
+
+```typescript
+// 1. Dynamic Import
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false  // Required to prevent hydration issues
+});
+
+// 2. Memoized Options
+const editorOptions = useMemo(() => ({
+  spellChecker: false,
+  status: false,
+  toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+}), []);
+
+// 3. Memoized Change Handler (CRITICAL)
+const handleChange = useMemo(() => (value: string) => {
+  setValue(value);
+}, []);
+
+// 4. Component Usage
+<SimpleMDE
+  value={value}
+  onChange={handleChange}
+  options={editorOptions}
+/>
+```
+
+#### Requirements
+1. Dynamic Import with ssr: false
+2. Memoized options object
+3. Memoized change handler
+4. Never use setState directly as onChange
+
+#### Known Locations
+1. `/app/faq/new/page.tsx`
+2. `/app/create-faq/[rfp_id]/page.tsx`
+3. `/app/faq/[id]/page.tsx`
+4. `/app/kb/new/page.tsx`
+5. `/app/kb/[id]/page.tsx`
+
+#### Error Identification
+The focus loss bug manifests as:
+- Single character input only
+- Focus loss after each keystroke
+- Required repeated clicking
+
+If these symptoms appear, verify implementation against this pattern.
