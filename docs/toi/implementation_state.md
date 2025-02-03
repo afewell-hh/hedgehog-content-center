@@ -118,10 +118,35 @@
   - LLM Chat Component: `/components/LLMChat.tsx`
 - Dependencies: AG Grid, SimpleMDE, Prisma, PostgreSQL, OpenAI API, DuckDuckGo search
 
-## In Progress Features
-None - All planned features are currently implemented
+### AG Grid Implementation
+- Required Modules:
+  - ValidationModule for error handling
+  - DateFilterModule for date filtering
+  - PaginationModule for pagination support
+  - TextFilterModule for text filtering
+- Theme Configuration:
+  - Set to 'legacy' theme
+  - Proper CSS imports in layout
+- Column Configuration:
+  - Actions column simplified to Edit link
+  - Date filters enabled
+  - Text filtering enabled
 
-## Known Issues and Implementation Requirements
+### Form Implementation
+- Field Organization:
+  - Article Title (text input)
+  - Article Subtitle (SimpleMDE editor)
+  - Article Body (SimpleMDE editor)
+  - Category selector
+  - Status and visibility controls
+- Editor Configuration:
+  - Both subtitle and body use SimpleMDE
+  - Consistent options across editors
+  - Focus handling improvements
+- Security Features:
+  - Password manager prevention
+  - Form submission handling
+  - HTML structure validation
 
 ### SimpleMDE Editor Implementation
 **CRITICAL: DO NOT REMOVE OR MODIFY THIS SECTION WITHOUT EXPLICIT APPROVAL**
@@ -170,6 +195,11 @@ The focus loss bug manifests as:
 - Required repeated clicking
 
 If these symptoms appear, verify implementation against this pattern.
+
+## In Progress Features
+None - All planned features are currently implemented
+
+## Known Issues and Implementation Requirements
 
 ## Critical Dependencies
 1. OpenAI API
