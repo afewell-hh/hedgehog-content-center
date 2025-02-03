@@ -181,6 +181,7 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
           ...prev,
           article_subtitle: data.subtitle,
           article_body: data.body,
+          keywords: data.keywords,
         };
       });
 

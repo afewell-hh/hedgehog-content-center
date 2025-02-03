@@ -8,7 +8,7 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { title, subtitle, body, category } = await request.json();
+    const { title, subtitle, body, category, keywords, prompt } = await request.json();
 
     if (!title || !category) {
       return NextResponse.json(
@@ -17,33 +17,23 @@ export async function POST(request: Request) {
       );
     }
 
-    // Construct a prompt for GPT to improve the content
-    const prompt = `You are a technical documentation expert. Please improve the following knowledge base article while maintaining its core meaning and technical accuracy. Focus on clarity, completeness, and proper technical terminology.
-
-Title: ${title}
-Category: ${category}
-${subtitle ? `Subtitle: ${subtitle}\n` : ''}
-Current Content:
-${body || 'No content provided'}
-
-Please provide an improved version that follows these STRICT formatting rules:
-1. Subtitle must be plain text only, NO HTML or markdown formatting
-2. Body content must use a specific hybrid HTML/Markdown format:
-   - Paragraphs must be wrapped in <p> tags
-   - Use <br> for line breaks
-   - Use markdown **bold** for emphasis
-   - Lists can use either HTML or markdown format
-   - Technical accuracy is crucial
-
-Respond ONLY with the improved content in this format:
-SUBTITLE:
-[improved subtitle in plain text]
-
-BODY:
-[improved body with hybrid HTML/Markdown format]`;
+    // Use the provided prompt template or fall back to a default
+    const formattedPrompt = (prompt || '').replace(
+      /{(\w+)}/g,
+      (match, key) => {
+        const values = {
+          title,
+          subtitle: subtitle || '',
+          body: body || '',
+          category,
+          keywords: keywords || ''
+        };
+        return values[key as keyof typeof values] || match;
+      }
+    );
 
     const completion = await openai.chat.completions.create({
-      messages: [{ role: "user", content: prompt }],
+      messages: [{ role: "user", content: formattedPrompt }],
       model: "gpt-4-1106-preview",
       temperature: 0.7,
       max_tokens: 4000,
@@ -55,16 +45,26 @@ BODY:
       throw new Error('No response from AI');
     }
 
-    // Parse and format the response
-    const subtitleMatch = response.match(/SUBTITLE:\n([\s\S]*?)\n\nBODY:/);
-    const bodyMatch = response.match(/BODY:\n([\s\S]*?)$/);
+    // Parse the response sections
+    const sections = response.match(
+      /<response>\s*<subtitle>([\s\S]*?)<\/subtitle>\s*<body>([\s\S]*?)<\/body>\s*<keywords>([\s\S]*?)<\/keywords>/
+    );
 
-    const improvedSubtitle = subtitleMatch ? formatKbSubtitle(subtitleMatch[1].trim()) : subtitle;
-    const improvedBody = bodyMatch ? formatKbBody(bodyMatch[1].trim()) : body;
+    if (!sections) {
+      throw new Error('Invalid response format from AI');
+    }
+
+    const [, rawSubtitle, rawBody, rawKeywords] = sections;
+
+    // Format the content
+    const improvedSubtitle = formatKbSubtitle(rawSubtitle.trim());
+    const improvedBody = formatKbBody(rawBody.trim());
+    const improvedKeywords = rawKeywords.trim();
 
     return NextResponse.json({
       subtitle: improvedSubtitle,
       body: improvedBody,
+      keywords: improvedKeywords,
     });
   } catch (error) {
     console.error('Error in auto-update:', error);
