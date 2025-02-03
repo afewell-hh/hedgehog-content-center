@@ -55,36 +55,24 @@ export default function ExportKbPage() {
       };
       setStats(stats);
 
-      // Transform entries for export, applying Hubspot formatting
-      const exportData = entries.map((entry: any) => {
-        try {
-          const formattedEntry = {
-            knowledge_base_name: 'KB',
-            article_title: formatKbTitle(entry.article_title),
-            article_subtitle: formatKbSubtitle(entry.article_subtitle || ''),
-            article_language: 'English',
-            article_url: entry.article_url,
-            article_body: formatKbBody(entry.article_body),
-            category: entry.category,
-            subcategory: entry.subcategory || '',
-            keywords: entry.keywords || '',
-            last_modified_date: new Date(entry.last_modified_date).toISOString(),
-            status: 'PUBLISHED', // All exported entries are published
-            archived: false,
-          };
-          stats.processed++;
-          setStats({ ...stats });
-          return formattedEntry;
-        } catch (err) {
-          console.error('Entry formatting error:', err);
-          stats.errors++;
-          setStats({ ...stats });
-          return null;
-        }
-      }).filter(Boolean); // Remove any failed entries
+      // Map the data to CSV format
+      const csvData = entries.map((entry) => ({
+        'Knowledge base name': 'KB',
+        'Article title': formatKbTitle(entry.article_title),
+        'Article subtitle': formatKbSubtitle(entry.article_subtitle || ''),
+        'Article language': 'English',
+        'Article URL': entry.article_url,
+        'Article body': formatKbBody(entry.article_body),
+        'Category': entry.category,
+        'Subcategory': entry.subcategory || '',
+        'Keywords': entry.keywords || '',
+        'Last modified date': new Date(entry.last_modified_date).toISOString(),
+        'Status': 'PUBLISHED', // All exported entries are published
+        'Archived': false,
+      }));
 
       // Convert to CSV with proper formatting
-      const csv = Papa.unparse(exportData, {
+      const csv = Papa.unparse(csvData, {
         quotes: true, // Always quote strings
         header: true,
         newline: '\r\n', // Windows-style newlines for compatibility
