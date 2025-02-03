@@ -191,19 +191,6 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Subtitle
-              </label>
-              <input
-                type="text"
-                name="article_subtitle"
-                value={entry.article_subtitle}
-                onChange={handleInputChange}
-                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-              />
-            </div>
-
-            <div>
-              <label className="block text-sm font-medium text-gray-700">
                 Category
               </label>
               <select
@@ -319,7 +306,18 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
 
         <div>
           <label className="block text-sm font-medium text-gray-700 mb-2">
-            Content
+            Subtitle
+          </label>
+          <SimpleMDE
+            value={entry.article_subtitle}
+            onChange={(value) => setEntry(prev => prev ? ({ ...prev, article_subtitle: value }) : null)}
+            options={editorOptions}
+          />
+        </div>
+
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Article Body
           </label>
           <SimpleMDE
             value={entry.article_body}
