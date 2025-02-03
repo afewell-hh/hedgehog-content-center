@@ -72,16 +72,16 @@ export default function KbLlmInteraction({ formData }: KbLlmInteractionProps) {
       <div className="mb-4">
         <div className="border rounded-lg p-2 h-48 overflow-y-auto bg-gray-50">
           {dialogueHistory.length === 0 ? (
-            <p className="text-gray-500 p-4">
-              No messages yet. Start a conversation! I can help you:
-              <ul className="list-disc ml-5 mt-2">
+            <div className="p-4 text-gray-500">
+              <p className="mb-2">No messages yet. Start a conversation! I can help you:</p>
+              <ul className="list-disc ml-5">
                 <li>Improve your article content</li>
                 <li>Suggest better titles or subtitles</li>
                 <li>Add relevant keywords</li>
                 <li>Format your content properly</li>
                 <li>Add citations when needed</li>
               </ul>
-            </p>
+            </div>
           ) : (
             dialogueHistory.map((message, index) => (
               <div 
