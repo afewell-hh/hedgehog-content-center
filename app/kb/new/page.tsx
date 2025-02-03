@@ -1,32 +1,49 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
-import SimpleMDE from 'react-simplemde-editor';
+import dynamic from 'next/dynamic';
 import 'easymde/dist/easymde.min.css';
 
+// Dynamic import of SimpleMDE to prevent SSR issues
+const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
+  ssr: false
+});
+
 interface FormData {
+  knowledge_base_name: string;
   article_title: string;
   article_subtitle: string;
+  article_language: string;
+  article_url: string;
   article_body: string;
   category: string;
   subcategory: string;
   keywords: string;
+  status: string;
+  archived: boolean;
   internal_status: string;
   visibility: string;
   notes: string;
+  metadata: Record<string, any>;
 }
 
 const initialFormData: FormData = {
+  knowledge_base_name: 'KB',
   article_title: '',
   article_subtitle: '',
+  article_language: 'English',
+  article_url: '',  // Will be generated on the server
   article_body: '',
   category: 'Glossary',
   subcategory: '',
   keywords: '',
+  status: 'DRAFT',  // Read-only, controlled by internal_status and visibility
+  archived: false,
   internal_status: 'Draft',
   visibility: 'Private',
   notes: '',
+  metadata: {},
 };
 
 export default function CreateKbEntryPage() {
@@ -45,22 +62,47 @@ export default function CreateKbEntryPage() {
     'Integrations',
   ];
 
+  // Memoized editor options
+  const editorOptions = useMemo(() => ({
+    spellChecker: false,
+    status: false,
+    toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
+  }), []);
+
+  // Calculate Hubspot status based on internal_status and visibility
+  const calculateHubspotStatus = (internal_status: string, visibility: string): string => {
+    return (internal_status === 'Approved' && visibility === 'Public') ? 'PUBLISHED' : 'DRAFT';
+  };
+
   const handleInputChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-    }));
+    setFormData((prev) => {
+      const newData = {
+        ...prev,
+        [name]: value,
+      };
+      
+      // Update status if internal_status or visibility changes
+      if (name === 'internal_status' || name === 'visibility') {
+        newData.status = calculateHubspotStatus(
+          name === 'internal_status' ? value : prev.internal_status,
+          name === 'visibility' ? value : prev.visibility
+        );
+      }
+      
+      return newData;
+    });
   };
 
-  const handleEditorChange = (value: string) => {
+  // Memoized editor change handler
+  const handleEditorChange = useMemo(() => (value: string) => {
     setFormData((prev) => ({
       ...prev,
       article_body: value,
     }));
-  };
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -179,7 +221,7 @@ export default function CreateKbEntryPage() {
           <div className="space-y-4">
             <div>
               <label className="block text-sm font-medium text-gray-700">
-                Status
+                Internal Status
               </label>
               <select
                 name="internal_status"
@@ -213,6 +255,24 @@ export default function CreateKbEntryPage() {
 
             <div>
               <label className="block text-sm font-medium text-gray-700">
+                Hubspot Status
+                <span className="ml-2 text-xs text-gray-500">
+                  (Controlled by Internal Status and Visibility)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={formData.status}
+                readOnly
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 cursor-not-allowed"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                PUBLISHED when Internal Status is Approved and Visibility is Public, otherwise DRAFT
+              </p>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
                 Notes
               </label>
               <textarea
@@ -233,11 +293,7 @@ export default function CreateKbEntryPage() {
           <SimpleMDE
             value={formData.article_body}
             onChange={handleEditorChange}
-            options={{
-              spellChecker: false,
-              placeholder: 'Enter the KB entry content here...',
-              status: ['lines', 'words'],
-            }}
+            options={editorOptions}
           />
         </div>
 
