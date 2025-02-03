@@ -213,7 +213,35 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="container p-4">
-      <h1 className="text-3xl font-bold text-primary mb-6">Edit KB Entry</h1>
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-3xl font-bold text-primary">Edit KB Entry</h1>
+        <div className="flex gap-4">
+          {entry.navigation?.prev && (
+            <button
+              type="button"
+              onClick={() => router.push(`/kb/${entry.navigation.prev.id}`)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              <svg className="-ml-1 mr-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M12.707 5.293a1 1 0 010 1.414L9.414 10l3.293 3.293a1 1 0 01-1.414 1.414l-4-4a1 1 0 010-1.414l4-4a1 1 0 011.414 0z" clipRule="evenodd" />
+              </svg>
+              Previous
+            </button>
+          )}
+          {entry.navigation?.next && (
+            <button
+              type="button"
+              onClick={() => router.push(`/kb/${entry.navigation.next.id}`)}
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary"
+            >
+              Next
+              <svg className="-mr-1 ml-2 h-5 w-5" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" fill="currentColor">
+                <path fillRule="evenodd" d="M7.293 14.707a1 1 0 010-1.414L10.586 10 7.293 6.707a1 1 0 011.414-1.414l4 4a1 1 0 010 1.414l-4 4a1 1 0 01-1.414 0z" clipRule="evenodd" />
+              </svg>
+            </button>
+          )}
+        </div>
+      </div>
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
@@ -241,58 +269,6 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
               />
-            </div>
-
-            <div className="flex space-x-4">
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Previous Record
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    type="text"
-                    value={entry.navigation?.prev?.title || ''}
-                    readOnly
-                    className="block w-full rounded-md border-gray-300 bg-gray-50 pr-16"
-                  />
-                  {entry.navigation?.prev && (
-                    <div className="absolute inset-y-0 right-0 flex items-center">
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/kb/${entry.navigation?.prev?.id}`)}
-                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Go →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
-
-              <div className="flex-1">
-                <label className="block text-sm font-medium text-gray-700">
-                  Next Record
-                </label>
-                <div className="mt-1 relative">
-                  <input
-                    type="text"
-                    value={entry.navigation?.next?.title || ''}
-                    readOnly
-                    className="block w-full rounded-md border-gray-300 bg-gray-50 pr-16"
-                  />
-                  {entry.navigation?.next && (
-                    <div className="absolute inset-y-0 right-0 flex items-center">
-                      <button
-                        type="button"
-                        onClick={() => router.push(`/kb/${entry.navigation?.next?.id}`)}
-                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        Go →
-                      </button>
-                    </div>
-                  )}
-                </div>
-              </div>
             </div>
 
             <div>
