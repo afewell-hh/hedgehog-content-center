@@ -23,6 +23,10 @@ interface KbEntry {
   visibility: string;
   notes: string;
   metadata: Record<string, any>;
+  navigation?: {
+    prev: { id: number; title: string } | null;
+    next: { id: number; title: string } | null;
+  };
 }
 
 const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
@@ -237,6 +241,58 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
                 required
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
               />
+            </div>
+
+            <div className="flex space-x-4">
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Previous Record
+                </label>
+                <div className="mt-1 relative">
+                  <input
+                    type="text"
+                    value={entry.navigation?.prev?.title || ''}
+                    readOnly
+                    className="block w-full rounded-md border-gray-300 bg-gray-50 pr-16"
+                  />
+                  {entry.navigation?.prev && (
+                    <div className="absolute inset-y-0 right-0 flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/kb/${entry.navigation?.prev?.id}`)}
+                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Go →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              <div className="flex-1">
+                <label className="block text-sm font-medium text-gray-700">
+                  Next Record
+                </label>
+                <div className="mt-1 relative">
+                  <input
+                    type="text"
+                    value={entry.navigation?.next?.title || ''}
+                    readOnly
+                    className="block w-full rounded-md border-gray-300 bg-gray-50 pr-16"
+                  />
+                  {entry.navigation?.next && (
+                    <div className="absolute inset-y-0 right-0 flex items-center">
+                      <button
+                        type="button"
+                        onClick={() => router.push(`/kb/${entry.navigation?.next?.id}`)}
+                        className="px-3 py-1 text-sm text-blue-600 hover:text-blue-800"
+                      >
+                        Go →
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div>

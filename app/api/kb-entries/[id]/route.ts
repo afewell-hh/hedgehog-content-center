@@ -22,8 +22,11 @@ export async function GET(
   { params }: { params: { id: string } }
 ) {
   try {
+    const id = parseInt(params.id);
+    
+    // Get current entry
     const entry = await prisma.kb_entries.findUnique({
-      where: { id: parseInt(params.id) },
+      where: { id },
     });
 
     if (!entry) {
@@ -33,7 +36,27 @@ export async function GET(
       );
     }
 
-    return NextResponse.json(entry);
+    // Get adjacent entries
+    const [prevEntry, nextEntry] = await Promise.all([
+      prisma.kb_entries.findFirst({
+        where: { id: { lt: id } },
+        orderBy: { id: 'desc' },
+        select: { id: true, article_title: true },
+      }),
+      prisma.kb_entries.findFirst({
+        where: { id: { gt: id } },
+        orderBy: { id: 'asc' },
+        select: { id: true, article_title: true },
+      }),
+    ]);
+
+    return NextResponse.json({
+      ...entry,
+      navigation: {
+        prev: prevEntry ? { id: prevEntry.id, title: prevEntry.article_title } : null,
+        next: nextEntry ? { id: nextEntry.id, title: nextEntry.article_title } : null,
+      },
+    });
   } catch (error) {
     console.error('Failed to fetch KB entry:', error);
     return NextResponse.json(
