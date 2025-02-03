@@ -9,14 +9,20 @@ import {
   ClientSideRowModelModule,
   ValidationModule,
   DateFilterModule,
+  PaginationModule,
+  TextFilterModule,
 } from 'ag-grid-community';
 import Link from 'next/link';
+import 'ag-grid-community/styles/ag-grid.css';
+import 'ag-grid-community/styles/ag-theme-alpine.css';
 
 // Register AG Grid modules
 ModuleRegistry.registerModules([
   ClientSideRowModelModule,
   ValidationModule,
   DateFilterModule,
+  PaginationModule,
+  TextFilterModule,
 ]);
 
 interface KbEntry {
@@ -215,6 +221,7 @@ export default function KbListPage() {
               sortable: true,
               resizable: true,
             }}
+            theme="legacy"
           />
         </div>
       )}
