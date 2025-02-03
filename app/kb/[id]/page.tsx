@@ -3,24 +3,26 @@
 import { useState, useEffect, useMemo, use } from 'react';
 import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
-import LLMChat from '@/components/LLMChat';
-import { useLLM } from '@/lib/hooks/useLLM';
+import KbLlmInteraction from '@/app/components/KbLlmInteraction';
 import 'easymde/dist/easymde.min.css';
 
 interface KbEntry {
   id: number;
+  knowledge_base_name: string;
   article_title: string;
   article_subtitle: string;
+  article_language: string;
+  article_url: string;
   article_body: string;
   category: string;
   subcategory: string;
   keywords: string;
+  status: string;
+  archived: boolean;
   internal_status: string;
   visibility: string;
   notes: string;
-  metadata: {
-    citations?: Array<{ number: number; url: string }>;
-  };
+  metadata: Record<string, any>;
 }
 
 const SimpleMDE = dynamic(() => import("react-simplemde-editor"), {
@@ -34,10 +36,6 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [showChat, setShowChat] = useState(false);
-  const { verifyContent } = useLLM({
-    onError: (error) => setError(error.message),
-  });
 
   const categories = [
     'Glossary',
@@ -68,70 +66,50 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
     fetchEntry();
   }, [resolvedParams.id]);
 
-  const handleInputChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
-  ) => {
-    if (!entry) return;
-    const { name, value } = e.target;
-    setEntry((prev) => prev ? ({ ...prev, [name]: value }) : null);
-  };
-
+  // Memoized editor options
   const editorOptions = useMemo(() => ({
     spellChecker: false,
     status: false,
     toolbar: ["bold", "italic", "heading", "|", "quote", "unordered-list", "ordered-list", "|", "preview"],
   }), []);
 
-  const handleEditorChange = useMemo(() => (value: string) => {
-    if (!entry) return;
-    setEntry((prev) => prev ? ({ ...prev, article_body: value }) : null);
-  }, [entry]);
+  // Calculate Hubspot status based on internal_status and visibility
+  const calculateHubspotStatus = (internal_status: string, visibility: string): string => {
+    return (internal_status === 'Approved' && visibility === 'Public') ? 'PUBLISHED' : 'DRAFT';
+  };
 
-  const handleAddCitation = (citation: { number: number; url: string }) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>
+  ) => {
     if (!entry) return;
+    const { name, value } = e.target;
     setEntry((prev) => {
       if (!prev) return null;
-      const citations = prev.metadata.citations || [];
-      return {
+      const newData = {
         ...prev,
-        metadata: {
-          ...prev.metadata,
-          citations: [...citations, citation],
-        },
+        [name]: value,
       };
+      
+      // Update status if internal_status or visibility changes
+      if (name === 'internal_status' || name === 'visibility') {
+        newData.status = calculateHubspotStatus(
+          name === 'internal_status' ? value : prev.internal_status,
+          name === 'visibility' ? value : prev.visibility
+        );
+      }
+      
+      return newData;
     });
   };
 
-  // Function to extract citation numbers from content
-  const extractCitations = (content: string): number[] => {
-    const matches = content.match(/\[(\d+)\]/g) || [];
-    return matches.map(match => parseInt(match.replace(/[\[\]]/g, '')));
-  };
-
-  // Function to cleanup unused citations
-  const cleanupCitations = (content: string, citations: Array<{ number: number; url: string }>) => {
-    const usedCitations = extractCitations(content);
-    return citations.filter(citation => usedCitations.includes(citation.number));
-  };
-
-  // Function to update footnotes section
-  const updateFootnotesSection = (content: string, citations: Array<{ number: number; url: string }>) => {
-    // Remove existing footnotes section if it exists
-    const contentWithoutFootnotes = content.replace(/\n*## References\n(\[\d+\]:.+\n)*/g, '');
-    
-    if (citations.length === 0) {
-      return contentWithoutFootnotes;
-    }
-
-    // Create new footnotes section
-    const footnotesSection = '\n\n## References\n' + 
-      citations
-        .sort((a, b) => a.number - b.number)
-        .map(citation => `[${citation.number}]: ${citation.url}`)
-        .join('\n');
-
-    return contentWithoutFootnotes + footnotesSection;
-  };
+  // Memoized editor change handler
+  const handleEditorChange = useMemo(() => (value: string) => {
+    if (!entry) return;
+    setEntry((prev) => prev ? ({
+      ...prev,
+      article_body: value,
+    }) : null);
+  }, [entry]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -141,48 +119,12 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
     setError(null);
 
     try {
-      // Clean up citations
-      const cleanedCitations = cleanupCitations(
-        entry.article_body,
-        entry.metadata.citations || []
-      );
-
-      // Update article body with cleaned citations
-      const updatedBody = updateFootnotesSection(
-        entry.article_body,
-        cleanedCitations
-      );
-
-      const updatedEntry = {
-        ...entry,
-        article_body: updatedBody,
-        metadata: {
-          ...entry.metadata,
-          citations: cleanedCitations,
-        },
-      };
-
-      // Verify content before saving
-      const verificationResult = await verifyContent(
-        updatedBody,
-        JSON.stringify({
-          title: entry.article_title,
-          category: entry.category,
-          citations: cleanedCitations,
-        })
-      );
-
-      if (!verificationResult.isValid) {
-        setError(`Content verification failed: ${verificationResult.feedback}`);
-        return;
-      }
-
       const response = await fetch(`/api/kb-entries/${entry.id}`, {
         method: 'PATCH',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(updatedEntry),
+        body: JSON.stringify(entry),
       });
 
       if (!response.ok) {
@@ -217,134 +159,147 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="container p-4">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-3xl font-bold text-primary">Edit KB Entry</h1>
-        <button
-          onClick={() => setShowChat(!showChat)}
-          className="px-4 py-2 bg-secondary text-white rounded hover:bg-secondary-dark"
-        >
-          {showChat ? 'Hide Assistant' : 'Show Assistant'}
-        </button>
-      </div>
+      <h1 className="text-3xl font-bold text-primary mb-6">Edit KB Entry</h1>
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className={`lg:col-span-${showChat ? '2' : '3'}`}>
-          {error && (
-            <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-              {error}
-            </div>
-          )}
+      {error && (
+        <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
+          {error}
+        </div>
+      )}
 
-          <form onSubmit={handleSubmit} className="space-y-6">
-            <div className="grid grid-cols-2 gap-6">
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Title
-                  </label>
-                  <input
-                    type="text"
-                    name="article_title"
-                    value={entry.article_title}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Subtitle
-                  </label>
-                  <input
-                    type="text"
-                    name="article_subtitle"
-                    value={entry.article_subtitle}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Category
-                  </label>
-                  <select
-                    name="category"
-                    value={entry.category}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  >
-                    {categories.map((category) => (
-                      <option key={category} value={category}>
-                        {category}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="space-y-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Status
-                  </label>
-                  <select
-                    name="internal_status"
-                    value={entry.internal_status}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  >
-                    <option value="Draft">Draft</option>
-                    <option value="Review">Review</option>
-                    <option value="Approved">Approved</option>
-                    <option value="Archived">Archived</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Visibility
-                  </label>
-                  <select
-                    name="visibility"
-                    value={entry.visibility}
-                    onChange={handleInputChange}
-                    required
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                  >
-                    <option value="Private">Private</option>
-                    <option value="Public">Public</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700">
-                    Keywords
-                  </label>
-                  <input
-                    type="text"
-                    name="keywords"
-                    value={entry.keywords}
-                    onChange={handleInputChange}
-                    className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
-                    placeholder="Comma-separated keywords"
-                  />
-                </div>
-              </div>
+      <form 
+        onSubmit={handleSubmit} 
+        className="space-y-6"
+        autoComplete="off"
+        data-lpignore="true"
+      >
+        <div className="grid grid-cols-2 gap-6">
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Title
+              </label>
+              <input
+                type="text"
+                name="article_title"
+                value={entry.article_title}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              />
             </div>
 
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-2">
-                Content
+              <label className="block text-sm font-medium text-gray-700">
+                Subtitle
               </label>
-              <SimpleMDE
-                value={entry.article_body}
-                onChange={handleEditorChange}
-                options={editorOptions}
+              <input
+                type="text"
+                name="article_subtitle"
+                value={entry.article_subtitle}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
               />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Category
+              </label>
+              <select
+                name="category"
+                value={entry.category}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                {categories.map((category) => (
+                  <option key={category} value={category}>
+                    {category}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Subcategory
+              </label>
+              <input
+                type="text"
+                name="subcategory"
+                value={entry.subcategory}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              />
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Keywords
+              </label>
+              <input
+                type="text"
+                name="keywords"
+                value={entry.keywords}
+                onChange={handleInputChange}
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+                placeholder="Comma-separated keywords"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Internal Status
+              </label>
+              <select
+                name="internal_status"
+                value={entry.internal_status}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Review">Review</option>
+                <option value="Approved">Approved</option>
+                <option value="Archived">Archived</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Visibility
+              </label>
+              <select
+                name="visibility"
+                value={entry.visibility}
+                onChange={handleInputChange}
+                required
+                className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
+              >
+                <option value="Private">Private</option>
+                <option value="Public">Public</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-sm font-medium text-gray-700">
+                Hubspot Status
+                <span className="ml-2 text-xs text-gray-500">
+                  (Controlled by Internal Status and Visibility)
+                </span>
+              </label>
+              <input
+                type="text"
+                value={entry.status}
+                readOnly
+                className="mt-1 block w-full rounded-md border-gray-300 bg-gray-50 cursor-not-allowed"
+              />
+              <p className="mt-1 text-sm text-gray-500">
+                PUBLISHED when Internal Status is Approved and Visibility is Public, otherwise DRAFT
+              </p>
             </div>
 
             <div>
@@ -359,68 +314,47 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
                 className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary focus:ring-primary"
               />
             </div>
-
-            {entry.metadata.citations && entry.metadata.citations.length > 0 && (
-              <div>
-                <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Citations
-                </label>
-                <div className="bg-gray-50 p-4 rounded">
-                  {entry.metadata.citations.map((citation, index) => (
-                    <div key={index} className="flex items-center space-x-2">
-                      <span className="text-gray-600">[{citation.number}]:</span>
-                      <a
-                        href={citation.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-blue-600 hover:text-blue-800"
-                      >
-                        {citation.url}
-                      </a>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div className="flex justify-end gap-4">
-              <button
-                type="button"
-                onClick={() => router.back()}
-                className="px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50"
-              >
-                Cancel
-              </button>
-              <button
-                type="submit"
-                disabled={saving}
-                className="px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-primary hover:bg-primary-dark disabled:opacity-50"
-              >
-                {saving ? 'Saving...' : 'Save'}
-              </button>
-            </div>
-          </form>
+          </div>
         </div>
 
-        {showChat && (
-          <div className="lg:col-span-1 border rounded-lg overflow-hidden h-[800px]">
-            <LLMChat
-              context={JSON.stringify({
-                title: entry.article_title,
-                category: entry.category,
-                content: entry.article_body,
-                citations: entry.metadata.citations,
-              })}
-              onUpdateContent={(content) =>
-                setEntry((prev) =>
-                  prev ? { ...prev, article_body: content } : null
-                )
-              }
-              onAddCitation={handleAddCitation}
-            />
-          </div>
-        )}
-      </div>
+        <div>
+          <label className="block text-sm font-medium text-gray-700 mb-2">
+            Content
+          </label>
+          <SimpleMDE
+            value={entry.article_body}
+            onChange={handleEditorChange}
+            options={editorOptions}
+          />
+        </div>
+
+        <KbLlmInteraction
+          formData={{
+            article_title: entry.article_title,
+            article_subtitle: entry.article_subtitle,
+            article_body: entry.article_body,
+            category: entry.category,
+          }}
+        />
+
+        <hr className="my-8 border-t border-gray-200" />
+        <div className="flex justify-end gap-4">
+          <button
+            type="button"
+            onClick={() => router.back()}
+            className="px-6 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+          >
+            Cancel
+          </button>
+          <button
+            type="submit"
+            disabled={saving}
+            className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
+      </form>
     </div>
   );
 }
