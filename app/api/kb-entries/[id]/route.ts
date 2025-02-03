@@ -12,7 +12,7 @@ const kbEntrySchema = z.object({
   keywords: z.string().optional(),
   internal_status: z.enum(['Draft', 'Review', 'Approved', 'Archived']),
   visibility: z.enum(['Public', 'Private']),
-  notes: z.string().optional(),
+  notes: z.preprocess((val) => val === null ? "" : val, z.string()).optional(),
   metadata: z.record(z.unknown()).optional(),
 });
 

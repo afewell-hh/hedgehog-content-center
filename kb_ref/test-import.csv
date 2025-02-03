@@ -1,0 +1,5 @@
+"Knowledge base name","Article title","Article subtitle","Article language","Article URL","Article body","Category","Subcategory","Keywords","Last modified date","Status","Archived"
+"KB","Test Entry 1","Test subtitle 1","en","http://21430285.hs-sites.com/test-entry-1","Test body 1","Glossary","","test,keywords","2025-02-02T22:35:06Z","PUBLISHED","false"
+"KB","Test Entry 2","Test subtitle 2","en","http://21430285.hs-sites.com/test-entry-2","Test body 2","FAQs","","test,keywords","2025-02-02T22:35:06Z","DRAFT","false"
+"KB","Test Entry 3","Test subtitle 3","en","http://21430285.hs-sites.com/test-entry-1","Updated test body 3","Glossary","","test,keywords","2025-02-02T22:35:07Z","PUBLISHED","false"
+"KB","Invalid Entry","","en","http://21430285.hs-sites.com/invalid-entry","","InvalidCategory","","","2025-02-02T22:35:06Z","DRAFT","false"

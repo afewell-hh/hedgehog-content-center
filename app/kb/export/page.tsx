@@ -40,9 +40,10 @@ export default function ExportKbPage() {
       // Only export published entries
       queryParams.append('status', 'PUBLISHED');
 
-      const response = await fetch(`/api/kb-entries?${queryParams}`);
+      const response = await fetch(`/api/kb-entries/export?${queryParams}`);
       if (!response.ok) {
-        throw new Error('Failed to fetch entries');
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to fetch entries');
       }
 
       const entries = await response.json();
@@ -54,10 +55,10 @@ export default function ExportKbPage() {
 
       // Transform entries for export
       const exportData = entries.map((entry: any) => ({
-        knowledge_base_name: entry.knowledge_base_name,
+        knowledge_base_name: 'KB',
         article_title: entry.article_title,
         article_subtitle: entry.article_subtitle || '',
-        article_language: entry.article_language,
+        article_language: entry.article_language || 'en',
         article_url: entry.article_url,
         article_body: entry.article_body,
         category: entry.category,
@@ -65,14 +66,18 @@ export default function ExportKbPage() {
         keywords: entry.keywords || '',
         last_modified_date: entry.last_modified_date,
         status: entry.status,
-        archived: entry.archived,
+        archived: entry.archived || false,
       }));
 
-      // Convert to CSV
-      const csv = Papa.unparse(exportData);
+      // Convert to CSV with proper formatting
+      const csv = Papa.unparse(exportData, {
+        quotes: true, // Always quote strings
+        header: true,
+        newline: '\r\n', // Windows-style newlines for compatibility
+      });
 
       // Create and download file
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().split('T')[0];
       link.href = URL.createObjectURL(blob);
@@ -81,6 +86,13 @@ export default function ExportKbPage() {
 
       stats.processed = exportData.length;
       setStats(stats);
+
+      // Show success message
+      const successDiv = document.createElement('div');
+      successDiv.className = 'bg-green-100 border border-green-400 text-green-700 px-4 py-3 rounded';
+      successDiv.textContent = `Successfully exported ${stats.processed} entries`;
+      document.querySelector('.container')?.appendChild(successDiv);
+      setTimeout(() => successDiv.remove(), 5000);
     } catch (err) {
       console.error('Export error:', err);
       setError(err instanceof Error ? err.message : 'Failed to export entries');

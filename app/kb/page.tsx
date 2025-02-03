@@ -46,29 +46,12 @@ export default function KbListPage() {
   const [entries, setEntries] = useState<KbEntry[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [selectedCategory, setSelectedCategory] = useState<string>('all');
-
-  const categories = [
-    'all',
-    'Glossary',
-    'FAQs',
-    'Getting started',
-    'Troubleshooting',
-    'General',
-    'Reports',
-    'Integrations',
-  ];
 
   useEffect(() => {
     const fetchEntries = async () => {
       try {
         setLoading(true);
-        const queryParams = new URLSearchParams();
-        if (selectedCategory !== 'all') {
-          queryParams.append('category', selectedCategory);
-        }
-        
-        const response = await fetch(`/api/kb-entries?${queryParams}`);
+        const response = await fetch('/api/kb-entries');
         if (!response.ok) {
           throw new Error('Failed to fetch KB entries');
         }
@@ -83,7 +66,7 @@ export default function KbListPage() {
     };
 
     fetchEntries();
-  }, [selectedCategory]);
+  }, []);
 
   const columnDefs: ColDef[] = [
     {
@@ -151,22 +134,17 @@ export default function KbListPage() {
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-3xl font-bold text-primary">Knowledge Base Entries</h1>
         <div className="flex gap-4 items-center">
-          <select
-            value={selectedCategory}
-            onChange={(e) => setSelectedCategory(e.target.value)}
-            className="border rounded p-2"
-          >
-            {categories.map((category) => (
-              <option key={category} value={category}>
-                {category === 'all' ? 'All Categories' : category}
-              </option>
-            ))}
-          </select>
           <Link
             href="/kb/import"
             className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700"
           >
             Import
+          </Link>
+          <Link
+            href="/kb/export"
+            className="bg-orange-600 text-white px-4 py-2 rounded hover:bg-orange-700"
+          >
+            Export
           </Link>
           <Link
             href="/kb/new"
