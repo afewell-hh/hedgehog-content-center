@@ -4,11 +4,20 @@ import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { AgGridReact } from 'ag-grid-react';
 import { ColDef } from 'ag-grid-community';
-import { ModuleRegistry, ClientSideRowModelModule } from 'ag-grid-community';
+import {
+  ModuleRegistry,
+  ClientSideRowModelModule,
+  ValidationModule,
+  DateColumnFilterModule,
+} from 'ag-grid-community';
 import Link from 'next/link';
 
 // Register AG Grid modules
-ModuleRegistry.registerModules([ClientSideRowModelModule]);
+ModuleRegistry.registerModules([
+  ClientSideRowModelModule,
+  ValidationModule,
+  DateColumnFilterModule,
+]);
 
 interface KbEntry {
   id: number;
