@@ -15,8 +15,8 @@ export default function KbLlmInteraction({ formData }: KbLlmInteractionProps) {
   const [userInput, setUserInput] = useState("");
   const [dialogueHistory, setDialogueHistory] = useState<{ role: string; content: string }[]>([]);
 
-  const handleSendMessage = async (e?: React.FormEvent) => {
-    // Prevent form submission
+  const handleSendMessage = async (e?: React.MouseEvent | React.KeyboardEvent) => {
+    // Prevent any default behavior
     e?.preventDefault();
     e?.stopPropagation();
 
@@ -107,22 +107,27 @@ export default function KbLlmInteraction({ formData }: KbLlmInteractionProps) {
       </div>
 
       {/* Input Area */}
-      <form onSubmit={handleSendMessage} className="flex gap-2">
+      <div className="flex gap-2">
         <input
           type="text"
           value={userInput}
           onChange={(e) => setUserInput(e.target.value)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter" && !e.shiftKey) {
+              handleSendMessage(e);
+            }
+          }}
           className="flex-1 rounded-md border-gray-300 shadow-sm focus:border-blue-500 focus:ring-blue-500"
           placeholder="Ask me to help with your KB article..."
         />
         <button
-          type="submit"
+          onClick={handleSendMessage}
           disabled={!userInput.trim()}
           className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed"
         >
           Send
         </button>
-      </form>
+      </div>
     </div>
   );
 }
