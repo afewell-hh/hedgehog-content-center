@@ -88,22 +88,14 @@ export default function KbListPage() {
   const columnDefs: ColDef[] = [
     {
       headerName: 'Actions',
-      width: 120,
+      width: 100,
       cellRenderer: (params: { data: { id: number } }) => (
-        <div className="flex gap-2">
-          <Link
-            href={`/kb/${params.data.id}`}
-            className="text-blue-600 hover:text-blue-800"
-          >
-            Edit
-          </Link>
-          <button
-            onClick={() => handleDelete(params.data.id)}
-            className="text-red-600 hover:text-red-800"
-          >
-            Delete
-          </button>
-        </div>
+        <Link
+          href={`/kb/${params.data.id}`}
+          className="text-blue-600 hover:text-blue-800"
+        >
+          Edit
+        </Link>
       ),
     },
     {
@@ -145,27 +137,6 @@ export default function KbListPage() {
       },
     },
   ];
-
-  const handleDelete = async (id: number) => {
-    if (!confirm('Are you sure you want to delete this KB entry?')) {
-      return;
-    }
-
-    try {
-      const response = await fetch(`/api/kb-entries/${id}`, {
-        method: 'DELETE',
-      });
-
-      if (!response.ok) {
-        throw new Error('Failed to delete KB entry');
-      }
-
-      // Refresh the entries list
-      setEntries(entries.filter(entry => entry.id !== id));
-    } catch (err) {
-      setError(err instanceof Error ? err.message : 'Failed to delete entry');
-    }
-  };
 
   if (error) {
     return (
