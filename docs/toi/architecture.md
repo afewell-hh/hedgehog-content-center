@@ -38,6 +38,195 @@ The Hedgehog Content Center is a web application designed to manage and transfor
    - Version and status management
    - Visibility states: private, public, draft, pending_review, approved, rejected, archived, needs-work
 
+## AI Assistance Architecture
+
+### Prompt System
+The application implements a sophisticated prompt management system for AI interactions:
+
+1. Core Components:
+   - `usePrompts` Hook (`/app/hooks/usePrompts.ts`)
+     - Manages prompt state and persistence
+     - Provides prompt update functionality
+     - Handles default fallbacks
+   
+   - `PromptPanel` Component (`/components/PromptPanel.tsx`)
+     - Side panel UI for prompt viewing/editing
+     - Real-time prompt updates
+     - Type-specific prompt management
+
+2. Prompt Types:
+   ```typescript
+   interface Prompts {
+     quickUpdate: string;    // Non-interactive content improvement
+     interactive: string;    // Edit page interactive chat
+     newEntry: string;      // New page interactive chat
+   }
+   ```
+
+3. Response Format:
+   ```xml
+   <response>
+     <subtitle>[content]</subtitle>
+     <body>[content]</body>
+     <keywords>[content]</keywords>
+     <explanation>[content]</explanation>
+   </response>
+   ```
+
+### AI Integration Modes
+
+1. Quick Update Mode:
+   - Purpose: One-click content improvement
+   - Components:
+     - Auto-update endpoint (`/api/llm/kb/auto/route.ts`)
+     - Loading state management
+     - Field synchronization
+   - Features:
+     - SEO keyword generation
+     - Technical verification
+     - Format compliance
+     - Content improvement
+
+2. Interactive Chat Mode:
+   - Purpose: Guided content creation/improvement
+   - Components:
+     - Chat interface (`KbLlmInteraction`)
+     - Context provider
+     - Field synchronization
+   - Features:
+     - Real-time suggestions
+     - Context-aware assistance
+     - Format guidance
+     - Technical verification
+
+### Content Processing Pipeline
+
+1. Input Processing:
+   ```typescript
+   interface KbEntry {
+     title: string;
+     subtitle: string;
+     body: string;
+     category: string;
+     keywords: string;
+   }
+   ```
+
+2. Verification Steps:
+   - Technical accuracy check
+   - Format compliance validation
+   - Source verification
+   - Keyword relevance
+
+3. Output Processing:
+   - Format standardization
+   - Field validation
+   - HTML/Markdown hybrid formatting
+   - Keyword optimization
+
+### Integration Points
+
+1. OpenAI Integration:
+   - Model: GPT-4-1106-preview
+   - Temperature: 0.7
+   - Max tokens: 4000
+   - Error handling
+   - Rate limiting
+
+2. DuckDuckGo Integration:
+   - Purpose: Technical verification
+   - Search result processing
+   - Source validation
+
+### State Management
+
+1. Form State:
+   ```typescript
+   interface FormData {
+     article_title: string;
+     article_subtitle: string;
+     article_body: string;
+     category: string;
+     keywords: string;
+     // ... other fields
+   }
+   ```
+
+2. Prompt State:
+   ```typescript
+   interface PromptPanelState {
+     isOpen: boolean;
+     type: 'quickUpdate' | 'interactive' | 'newEntry';
+     prompt: string;
+   }
+   ```
+
+3. Chat State:
+   ```typescript
+   interface ChatState {
+     messages: Message[];
+     loading: boolean;
+     error: string | null;
+   }
+   ```
+
+### Security Considerations
+
+1. Prompt Protection:
+   - Validation before updates
+   - Default fallbacks
+   - Error boundaries
+
+2. Content Validation:
+   - Input sanitization
+   - Format verification
+   - Source checking
+
+3. API Security:
+   - Rate limiting
+   - Error handling
+   - Input validation
+
+### Development Guidelines
+
+1. Prompt Development:
+   - Maintain technical accuracy
+   - Include format requirements
+   - Add context awareness
+   - Provide clear guidance
+
+2. Response Handling:
+   - Parse XML format
+   - Validate all sections
+   - Handle missing fields
+   - Maintain format compliance
+
+3. UI Integration:
+   - Consistent loading states
+   - Clear error messages
+   - Smooth field updates
+   - Responsive design
+
+### Testing Requirements
+
+1. Prompt Testing:
+   - Format validation
+   - Response parsing
+   - Error handling
+   - Default fallbacks
+
+2. Integration Testing:
+   - API communication
+   - State management
+   - Field synchronization
+   - Error scenarios
+
+3. UI Testing:
+   - Component rendering
+   - User interactions
+   - Loading states
+   - Error displays
+
 ## Core Components
 
 ### Frontend (Next.js)

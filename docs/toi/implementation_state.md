@@ -72,37 +72,65 @@
   - Core Features:
     - AG Grid list view with category filtering
     - Detail view with SimpleMDE editor
-    - AI Assistance section with dual LLM modes:
-      - Interactive chat with card-based UI
-      - Non-interactive quick update with visual feedback
+    - AI Assistance with two distinct modes:
+      1. Interactive Chat:
+        - Card-based UI with dialogue history
+        - Customizable prompts via side panel
+        - Context-aware assistance based on current field values
+        - Real-time content suggestions
+        - Specialized prompts for new vs. existing entries
+      2. Quick Update (Edit page only):
+        - One-click content improvement
+        - SEO keyword generation
+        - Technical verification
+        - Loading state animation
+        - Confirmation dialog
     - Citation management system
-    - Import/Export functionality with CSV support
+    - Import/Export functionality with Hubspot-compliant CSV
     - Category-based organization
     - Status tracking (Draft/Review/Approved/Archived)
     - Visibility control (Public/Private)
     - Technical verification system
+    - Previous/Next record navigation
+  - Prompt System:
+    - Customizable prompts for each AI mode
+    - Side panel for viewing/editing prompts
+    - Specialized prompt templates:
+      1. Quick Update:
+        - Focused on wholesale content improvement
+        - SEO keyword generation
+        - Technical verification requirements
+        - Hubspot formatting rules
+      2. Interactive Chat (Edit):
+        - Context-aware assistance
+        - Field-specific guidance
+        - Format preservation
+        - Technical accuracy focus
+      3. Interactive Chat (New):
+        - Empty state handling
+        - Step-by-step guidance
+        - Format requirements
+        - Technical accuracy focus
+    - Response Format:
+      ```xml
+      <response>
+        <subtitle>[content]</subtitle>
+        <body>[content]</body>
+        <keywords>[content]</keywords>
+        <explanation>[content]</explanation>
+      </response>
+      ```
   - Navigation:
-    - Main KB list page
+    - Main KB list page with export button
     - New entry page with interactive chat
     - Edit entry page with both LLM modes
-    - Import page
-    - Export page
-  - LLM Integration:
-    - Interactive Mode:
-      - Card-based chat interface
-      - Feature list and descriptive icon
-      - Context-aware assistance
-      - Real-time suggestions
-    - Non-Interactive Mode:
-      - Quick update card with feature list
-      - Loading state animation
-      - Confirmation dialog
-      - Automatic content improvement
-    - Shared Features:
-      - Content generation assistance
-      - Citation processing
-      - Technical verification
-      - Source validation
+    - Import page with CSV validation
+    - Export page with Hubspot compliance
+  - Hubspot Integration:
+    - Strict formatting compliance
+    - CSV export compatibility
+    - Title format standardization
+    - Required field validation
 - Location:
   - List view: `/app/kb/page.tsx`
   - Detail view: `/app/kb/[id]/page.tsx`
@@ -113,10 +141,18 @@
   - KB Entry API: `/app/api/kb-entries/[id]/route.ts`
   - KB LLM API: `/app/api/llm/kb/route.ts`
   - KB Auto LLM API: `/app/api/llm/kb/auto/route.ts`
+  - Prompts Hook: `/app/hooks/usePrompts.ts`
   - LLM Service: `/lib/llm/openai.ts`
   - LLM Hook: `/lib/hooks/useLLM.ts`
-  - LLM Chat Component: `/components/LLMChat.tsx`
-- Dependencies: AG Grid, SimpleMDE, Prisma, PostgreSQL, OpenAI API, DuckDuckGo search
+  - LLM Chat Component: `/components/KbLlmInteraction.tsx`
+  - Prompt Panel: `/components/PromptPanel.tsx`
+- Dependencies: 
+  - AG Grid for data display
+  - SimpleMDE for Markdown editing
+  - Prisma for database operations
+  - PostgreSQL for data storage
+  - OpenAI API (GPT-4) for content generation
+  - DuckDuckGo search for technical verification
 
 ### AG Grid Implementation
 - Required Modules:
