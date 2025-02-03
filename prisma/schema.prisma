@@ -40,3 +40,29 @@ model faq {
 
   @@map("faq")
 }
+
+model kb_entries {
+  id                  Int       @id @default(autoincrement())
+  knowledge_base_name String    @default("KB")
+  article_title       String
+  article_subtitle    String?
+  article_language    String    @default("English")
+  article_url         String    @unique
+  article_body        String
+  category           String    // enum in application layer: ["Glossary", "FAQs", "Getting started", "Troubleshooting", "General", "Reports", "Integrations"]
+  subcategory        String?
+  keywords           String?
+  last_modified_date DateTime  @updatedAt
+  status             String    @default("DRAFT") // enum in application layer: ["DRAFT", "PUBLISHED"]
+  archived           Boolean   @default(false)
+  
+  // HCC-specific fields
+  internal_status    String    @default("Draft") // enum in application layer: ["Draft", "Review", "Approved", "Archived"]
+  visibility         String    @default("Private") // enum in application layer: ["Public", "Private"]
+  notes              String?
+  metadata           Json?     @default("{}")
+  created_at         DateTime  @default(now())
+  updated_at         DateTime  @updatedAt
+
+  @@map("kb_entries")
+}
