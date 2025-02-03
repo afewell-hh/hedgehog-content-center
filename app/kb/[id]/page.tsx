@@ -35,6 +35,7 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
   const [entry, setEntry] = useState<KbEntry | null>(null);
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   const categories = [
@@ -136,6 +137,55 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
       setSaving(false);
+    }
+  };
+
+  const handleAutoUpdate = async () => {
+    if (!entry) return;
+    
+    if (!confirm('This will automatically update the KB entry using AI. The content will be verified against authoritative sources. Continue?')) {
+      return;
+    }
+
+    setUpdating(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/llm/kb/auto`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          title: entry.article_title,
+          subtitle: entry.article_subtitle,
+          body: entry.article_body,
+          category: entry.category,
+        }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to auto-update KB entry');
+      }
+
+      const data = await response.json();
+      
+      // Update the entry with the AI-generated content
+      setEntry(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          article_subtitle: data.subtitle,
+          article_body: data.body,
+        };
+      });
+
+      // Show success message
+      alert('KB entry has been updated successfully. Please review the changes before saving.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Failed to auto-update KB entry');
+    } finally {
+      setUpdating(false);
     }
   };
 
@@ -324,6 +374,17 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
             onChange={handleEditorChange}
             options={editorOptions}
           />
+        </div>
+
+        <div className="flex justify-end">
+          <button
+            type="button"
+            onClick={handleAutoUpdate}
+            disabled={updating}
+            className="mb-4 px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-green-600 hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-green-500 disabled:opacity-50 disabled:cursor-not-allowed"
+          >
+            {updating ? 'Updating...' : 'Update KB Entry with AI'}
+          </button>
         </div>
 
         <KbLlmInteraction
