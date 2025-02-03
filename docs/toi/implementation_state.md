@@ -72,7 +72,9 @@
   - Core Features:
     - AG Grid list view with category filtering
     - Detail view with SimpleMDE editor
-    - LLM chat assistant for content creation
+    - AI Assistance section with dual LLM modes:
+      - Interactive chat with card-based UI
+      - Non-interactive quick update with visual feedback
     - Citation management system
     - Import/Export functionality with CSV support
     - Category-based organization
@@ -81,15 +83,26 @@
     - Technical verification system
   - Navigation:
     - Main KB list page
-    - New entry page
-    - Edit entry page
+    - New entry page with interactive chat
+    - Edit entry page with both LLM modes
     - Import page
     - Export page
   - LLM Integration:
-    - Content generation assistance
-    - Citation processing
-    - Technical verification
-    - Interactive chat interface
+    - Interactive Mode:
+      - Card-based chat interface
+      - Feature list and descriptive icon
+      - Context-aware assistance
+      - Real-time suggestions
+    - Non-Interactive Mode:
+      - Quick update card with feature list
+      - Loading state animation
+      - Confirmation dialog
+      - Automatic content improvement
+    - Shared Features:
+      - Content generation assistance
+      - Citation processing
+      - Technical verification
+      - Source validation
 - Location:
   - List view: `/app/kb/page.tsx`
   - Detail view: `/app/kb/[id]/page.tsx`
@@ -98,7 +111,8 @@
   - Export: `/app/kb/export/page.tsx`
   - KB API: `/app/api/kb-entries/route.ts`
   - KB Entry API: `/app/api/kb-entries/[id]/route.ts`
-  - KB LLM API: `/app/api/kb-llm/route.ts`
+  - KB LLM API: `/app/api/llm/kb/route.ts`
+  - KB Auto LLM API: `/app/api/llm/kb/auto/route.ts`
   - LLM Service: `/lib/llm/openai.ts`
   - LLM Hook: `/lib/hooks/useLLM.ts`
   - LLM Chat Component: `/components/LLMChat.tsx`

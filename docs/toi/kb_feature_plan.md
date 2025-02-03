@@ -157,25 +157,48 @@ Form Layout:
 
 LLM Integration:
 1. Interactive Mode:
-   - Chat-style interface similar to FAQ edit page
-   - Context-aware of current field values
+   - Dedicated "AI Assistance" section with clear heading
+   - Card-based interface with blue theme and chat icon
+   - Feature list explaining capabilities:
+     - Ask specific questions
+     - Get writing suggestions
+     - Refine content iteratively
+   - Full-width chat interface below feature list
+   - Conversation history with fixed height and scrollbar
+   - Aware of Article Title, Subtitle, and Body
    - Category-specific prompting
    - DuckDuckGo search integration
 
 2. Non-Interactive Mode:
-   - "Update KB Entry" button
-   - Uses kb_processor.py prompt system
-   - Writer/Editor agent pattern
-   - Technical verification
-   - Automatic updates to fields
+   - Green-themed card with lightning bolt icon
+   - Feature list explaining capabilities:
+     - Fact-checks against reliable sources
+     - Adds relevant citations
+     - Improves clarity and completeness
+   - "Update with AI" button with loading animation
+   - Confirmation dialog explaining the process
+   - Side-by-side features and button layout
+   - Writer agent for content generation
+   - Editor agent for refinement
+   - DuckDuckGo verification
+   - Citation management system
 
 ### 5. LLM Integration 
 #### A. Interactive Mode
 - Purpose: User-driven updates with real-time assistance
-- Implementation matching FAQ pages:
-  - Chat-style interface in same location
-  - Conversation history display below
-  - Context includes Article Title, Subtitle, and Body
+- Implementation:
+  - Dedicated "AI Assistance" section with clear heading
+  - Card-based interface with blue theme and chat icon
+  - Feature list explaining capabilities:
+    - Ask specific questions
+    - Get writing suggestions
+    - Refine content iteratively
+  - Full-width chat interface below feature list
+  - Conversation history with fixed height and scrollbar
+- Context Integration:
+  - Aware of Article Title, Subtitle, and Body
+  - Category-specific prompting
+  - DuckDuckGo search integration
 - Citation Requirements:
   - Numbered citations in content ([1], [2], etc.)
   - Footnotes section at bottom of Article Body
@@ -183,132 +206,45 @@ LLM Integration:
   - Preserve existing citations when updating
   - Remove unused citations
   - Add new citations as needed
-- Components:
-  - Chat interface
-  - Field-aware context
-  - Category-specific help
-  - Citation management
 
 #### B. Non-Interactive Mode
 - Purpose: Automated content improvement
 - UI Elements:
-  - "Update KB Entry" button
-  - Confirmation dialog explaining the action
-  - Tooltip/hover text explaining functionality
-- Components:
-  - Writer agent
-  - Editor agent
+  - Green-themed card with lightning bolt icon
+  - Feature list explaining capabilities:
+    - Fact-checks against reliable sources
+    - Adds relevant citations
+    - Improves clarity and completeness
+  - "Update with AI" button with loading animation
+  - Confirmation dialog explaining the process
+  - Side-by-side features and button layout
+- Technical Components:
+  - Writer agent for content generation
+  - Editor agent for refinement
   - DuckDuckGo verification
-  - Citation management (same as interactive mode)
-  - Structured response format
+  - Citation management system
 
-#### C. Citation Management
-Citation Rules:
-1. Format:
-   - Use plaintext bracketed numbers: [1], [2], etc.
-   - No rich text formatting to ensure Hubspot compatibility
-   - Citations can appear in Article Subtitle and Body
-   - Footnotes section only appears in Article Body
-   - Footnotes section starts with "References:"
+#### C. Implementation Details
+- Edit Page (`/app/kb/[id]/page.tsx`):
+  - Both Interactive and Non-Interactive modes
+  - Stacked card layout with full width
+  - Clear visual hierarchy and spacing
+  - Consistent styling with other KB pages
 
-2. Citation Ordering:
-   - Numbers assigned in order of appearance
-   - Subtitle citations are processed first
-   - Body citations are processed second
-   - Example:
-     ```
-     Subtitle: This is a concept [1] with context [2]
-     Body: More details about [3] and revisiting first concept [1].
-     
-     References:
-     [1]: https://example.com/first
-     [2]: https://example.com/second
-     [3]: https://example.com/third
-     ```
+- New Entry Page (`/app/kb/new/page.tsx`):
+  - Interactive mode only
+  - Matching card-based styling
+  - Same feature list and chat interface
 
-3. URL Deduplication:
-   - Each unique URL gets one citation number
-   - Repeated citations of same URL reuse the original number
-   - Example:
-     ```
-     Body: First reference [1], second reference [2], 
-     then citing first source again [1].
-     
-     References:
-     [1]: https://example.com/first
-     [2]: https://example.com/second
-     ```
+- API Endpoints:
+  - `/api/llm/kb/`: Interactive chat endpoint
+  - `/api/llm/kb/auto/`: Non-interactive update endpoint
 
-4. Update Process:
-   - Extract existing citations and URLs
-   - Build URL-to-number mapping
-   - Process subtitle citations first
-   - Process body citations second
-   - Generate new footnotes section
-   - Replace old footnotes section
-
-5. Implementation Details:
-```typescript
-interface Citation {
-  number: number;
-  url: string;
-  locations: {
-    field: 'subtitle' | 'body';
-    position: number;
-  }[];
-}
-
-interface CitationManager {
-  // Track URL to citation number mapping
-  urlMap: Map<string, number>;
-  
-  // Process citations in correct order
-  processCitations(subtitle: string, body: string): {
-    newSubtitle: string;
-    newBody: string;
-    citations: Citation[];
-  };
-
-  // Extract citations from text
-  extractCitations(text: string): Citation[];
-
-  // Generate footnotes section
-  generateFootnotes(citations: Citation[]): string;
-
-  // Update content preserving non-citation text
-  updateContent(originalContent: string, citations: Citation[]): string;
-}
-```
-
-6. LLM Integration:
-   - Prompt Design:
-     ```
-     Given the following KB entry:
-     Title: {title}
-     Subtitle: {subtitle}
-     Body: {body}
-
-     Update the content to be more accurate and comprehensive.
-     Requirements:
-     1. Use numbered citations [1] to support key facts
-     2. Cite authoritative sources
-     3. Maintain existing accurate citations
-     4. Remove outdated citations
-     5. Place footnotes at end of body
-
-     Response Format:
-     {
-       "subtitle": "Updated subtitle with [n] citations",
-       "body": "Updated body with [n] citations\n\nReferences:\n[1]: url1\n[2]: url2",
-       "reasoning": "Brief explanation of changes and citations"
-     }
-     ```
-
-7. Error Handling:
-   - Invalid citation format detection
-   - Missing reference detection
-   - URL validation
-   - Footnotes section integrity checks
+- Components:
+  - LLM Chat component for interactive mode
+  - Loading states and animations
+  - Error handling and user feedback
+  - Consistent card component styling
 
 ### 6. API Routes
 New routes needed:
