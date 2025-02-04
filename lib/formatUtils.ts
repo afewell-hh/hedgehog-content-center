@@ -23,17 +23,50 @@ export function formatKbSubtitle(subtitle: string): string {
 }
 
 /**
- * Format body content to use Hubspot's hybrid HTML/Markdown format
+ * Format body content to use Hubspot's allowed HTML format
  */
 export function formatKbBody(body: string): string {
+  // List of allowed HTML tags and their attributes
+  const allowedTags = {
+    p: ['style'], // Supports text-align and padding-left
+    h3: [],
+    h4: [],
+    blockquote: [],
+    pre: [],
+    strong: [],
+    em: [],
+    span: ['style'], // Supports text-decoration
+    ul: [],
+    ol: [],
+    li: [],
+    sup: [],
+    sub: [],
+    code: [],
+    a: ['href', 'rel', 'target'],
+    br: []
+  };
+
+  // Common text alignments
+  const alignments = {
+    center: 'text-align: center;',
+    right: 'text-align: right;',
+    justify: 'text-align: justify;'
+  };
+
+  // Text decorations
+  const decorations = {
+    underline: 'text-decoration: underline;',
+    strikethrough: 'text-decoration: line-through;'
+  };
+
   // Ensure paragraphs are wrapped in <p> tags
   let formatted = body
     .split('\n\n')
     .map(para => para.trim())
     .filter(para => para)
     .map(para => {
-      // Don't wrap if it's already an HTML tag
-      if (para.startsWith('<') && para.endsWith('>')) {
+      // Don't wrap if it's already an HTML block-level tag
+      if (para.match(/^<(p|h[34]|blockquote|pre|[ou]l)[\s>]/)) {
         return para;
       }
       return `<p>${para}</p>`;
@@ -43,11 +76,20 @@ export function formatKbBody(body: string): string {
   // Replace regular line breaks with HTML breaks
   formatted = formatted.replace(/(?<!\>)\n(?!\<)/g, '<br>');
 
-  // Ensure proper spacing after HTML breaks
-  formatted = formatted.replace(/<br><br>/g, '</p>\n\n<p>');
+  // Convert markdown bold to HTML
+  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '<strong>$1</strong>');
 
-  // Keep markdown bold syntax
-  formatted = formatted.replace(/\*\*(.*?)\*\*/g, '**$1**');
+  // Convert markdown italic to HTML
+  formatted = formatted.replace(/\*(.*?)\*/g, '<em>$1</em>');
+
+  // Convert markdown code to HTML
+  formatted = formatted.replace(/`([^`]+)`/g, '<code>$1</code>');
+
+  // Convert markdown links to HTML
+  formatted = formatted.replace(
+    /\[([^\]]+)\]\(([^)]+)\)/g,
+    '<a href="$2" rel="noopener">$1</a>'
+  );
 
   return formatted;
 }

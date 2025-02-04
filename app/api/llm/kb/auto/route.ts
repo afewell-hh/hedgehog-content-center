@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { OpenAI } from 'openai';
 import { formatKbSubtitle, formatKbBody } from '@/lib/formatUtils';
+import { generateKbUrl, shouldUpdateKbUrl } from '@/lib/urlUtils';
 
 const openai = new OpenAI({
   apiKey: process.env.OPENAI_API_KEY,
@@ -8,7 +9,7 @@ const openai = new OpenAI({
 
 export async function POST(request: Request) {
   try {
-    const { title, subtitle, body, category, keywords, prompt } = await request.json();
+    const { title, subtitle, body, category, keywords, prompt, article_url } = await request.json();
 
     if (!title || !category) {
       return NextResponse.json(
@@ -46,11 +47,13 @@ export async function POST(request: Request) {
     }
 
     // Parse the response sections
-    const sections = response.match(
-      /<response>\s*<subtitle>([\s\S]*?)<\/subtitle>\s*<body>([\s\S]*?)<\/body>\s*<keywords>([\s\S]*?)<\/keywords>/
+    const cleanResponse = response.trim();
+    const sections = cleanResponse.match(
+      /^<response>[\s\S]*?<subtitle>([\s\S]*?)<\/subtitle>[\s\S]*?<body>([\s\S]*?)<\/body>[\s\S]*?<keywords>([\s\S]*?)<\/keywords>[\s\S]*?(?:<sources>[\s\S]*?<\/sources>)?[\s\S]*?<\/response>$/
     );
 
     if (!sections) {
+      console.error('Invalid response format. Response:', response);
       throw new Error('Invalid response format from AI');
     }
 
@@ -61,10 +64,17 @@ export async function POST(request: Request) {
     const improvedBody = formatKbBody(rawBody.trim());
     const improvedKeywords = rawKeywords.trim();
 
+    // Handle article URL
+    let improvedUrl = article_url;
+    if (shouldUpdateKbUrl(article_url)) {
+      improvedUrl = generateKbUrl(category, title);
+    }
+
     return NextResponse.json({
       subtitle: improvedSubtitle,
       body: improvedBody,
       keywords: improvedKeywords,
+      article_url: improvedUrl
     });
   } catch (error) {
     console.error('Error in auto-update:', error);
