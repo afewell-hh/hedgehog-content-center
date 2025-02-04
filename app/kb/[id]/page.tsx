@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import dynamic from 'next/dynamic';
 import KbLlmInteraction from '@/app/components/KbLlmInteraction';
 import PromptPanel from '@/app/components/PromptPanel';
-import { usePrompts, defaultPrompts } from '@/app/hooks/usePrompts';
+import { defaultPrompts } from '@/app/hooks/usePrompts';
 import 'easymde/dist/easymde.min.css';
 
 interface KbEntry {
@@ -43,7 +43,62 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
   const [saving, setSaving] = useState(false);
   const [updating, setUpdating] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const { prompts, updatePrompt } = usePrompts();
+
+  const [prompts, setPrompts] = useState<{
+    'quickUpdate': string;
+    'interactive': string;
+  }>({
+    'quickUpdate': '',
+    'interactive': ''
+  });
+
+  useEffect(() => {
+    const loadedPrompts = {
+      'quickUpdate': localStorage.getItem('prompt-quickUpdate') || defaultPrompts['quickUpdate'],
+      'interactive': localStorage.getItem('prompt-interactive') || defaultPrompts['interactive']
+    };
+    setPrompts(loadedPrompts);
+  }, []);
+
+  const updatePrompt = (type: 'quickUpdate' | 'interactive', newPrompt: string) => {
+    setPrompts(prev => ({
+      ...prev,
+      [type]: newPrompt
+    }));
+    localStorage.setItem(`prompt-${type}`, newPrompt);
+    setPromptPanel(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handleOpenPrompt = (type: 'quickUpdate' | 'interactive') => {
+    setPromptPanel({
+      isOpen: true,
+      type,
+      prompt: prompts[type] || defaultPrompts[type]
+    });
+  };
+
+  const handleClosePrompt = () => {
+    setPromptPanel(prev => ({ ...prev, isOpen: false }));
+  };
+
+  const handlePromptChange = (newPrompt: string) => {
+    setPromptPanel(prev => ({ ...prev, prompt: newPrompt }));
+  };
+
+  const handlePromptSave = () => {
+    const { type, prompt } = promptPanel;
+    updatePrompt(type, prompt);
+  };
+
+  const [promptPanel, setPromptPanel] = useState<{
+    isOpen: boolean;
+    type: 'quickUpdate' | 'interactive';
+    prompt: string;
+  }>({
+    isOpen: false,
+    type: 'quickUpdate',
+    prompt: ''
+  });
 
   const categories = [
     'Glossary',
@@ -165,7 +220,7 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
           body: entry.article_body,
           category: entry.category,
           keywords: entry.keywords,
-          prompt: prompts.quickUpdate
+          prompt: prompts['quickUpdate']
         }),
       });
 
@@ -193,28 +248,42 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
     }
   };
 
-  const handleOpenPrompt = (type: 'quickUpdate' | 'interactive') => {
-    setPromptPanel({
-      isOpen: true,
-      type,
-      prompt: prompts[type] || defaultPrompts[type]
-    });
-  };
+  const handleDelete = async () => {
+    if (!entry) return;
 
-  const handlePromptSave = (prompt: string) => {
-    updatePrompt(promptPanel.type, prompt);
-    setPromptPanel(prev => ({ ...prev, isOpen: false }));
-  };
+    // First confirmation
+    if (!confirm('Are you sure you want to delete this KB entry?')) {
+      return;
+    }
 
-  const [promptPanel, setPromptPanel] = useState<{
-    isOpen: boolean;
-    type: 'quickUpdate' | 'interactive';
-    prompt: string;
-  }>({
-    isOpen: false,
-    type: 'interactive',
-    prompt: ''
-  });
+    // Second confirmation with reason
+    const reason = prompt('Please provide a reason for deletion (required):');
+    if (!reason) {
+      return;
+    }
+
+    setError(null);
+    setSaving(true);
+
+    try {
+      const response = await fetch(`/api/kb-entries/${entry.id}`, {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ reason }),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to delete KB entry');
+      }
+
+      router.push('/kb');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+      setSaving(false);
+    }
+  };
 
   if (loading) {
     return (
@@ -547,38 +616,52 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
                 <KbLlmInteraction
                   entry={entry}
                   onUpdate={(updatedEntry) => setEntry(updatedEntry)}
-                  prompt={prompts.interactive}
+                  prompt={prompts['interactive']}
                 />
               </div>
             </div>
           </div>
 
           <hr className="my-8 border-t border-gray-200" />
-          <div className="flex justify-end gap-4">
+          <div className="flex justify-between items-center">
             <button
               type="button"
-              onClick={() => router.back()}
-              className="px-6 py-2 border border-orange-200 rounded-md shadow-sm text-sm font-medium text-orange-600 hover:bg-orange-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 transition-colors"
-            >
-              Cancel
-            </button>
-            <button
-              type="submit"
+              onClick={handleDelete}
+              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
               disabled={saving}
-              className="px-6 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
-              {saving ? (
-                <>
-                  <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white inline-block" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                  </svg>
-                  Saving...
-                </>
-              ) : (
-                'Save Changes'
-              )}
+              <svg 
+                className="w-5 h-5" 
+                fill="none" 
+                stroke="currentColor" 
+                viewBox="0 0 24 24"
+              >
+                <path 
+                  strokeLinecap="round" 
+                  strokeLinejoin="round" 
+                  strokeWidth={2} 
+                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
+                />
+              </svg>
+              <span>Delete Entry</span>
             </button>
+
+            <div className="flex space-x-4">
+              <button
+                type="button"
+                onClick={() => router.push('/kb')}
+                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                type="submit"
+                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
+                disabled={saving}
+              >
+                {saving ? 'Saving...' : 'Save Changes'}
+              </button>
+            </div>
           </div>
 
         </form>
@@ -588,8 +671,8 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
         isOpen={promptPanel.isOpen}
         type={promptPanel.type}
         prompt={promptPanel.prompt}
-        onClose={() => setPromptPanel(prev => ({ ...prev, isOpen: false }))}
-        onPromptChange={(prompt) => setPromptPanel(prev => ({ ...prev, prompt }))}
+        onClose={handleClosePrompt}
+        onPromptChange={handlePromptChange}
         onSave={handlePromptSave}
       />
     </div>
