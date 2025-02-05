@@ -1,0 +1,35 @@
+{"KB","Test-Formatting","Testing formatting options - note, the editing toolbar is disabled in the subtitle, so only plain text without any formatting, no bold etc...","en","https://githedgehog.com/test-formatting","<p>Heading 1 is reserved and fixed for title field</p>
+<p>Heading 2 is reserved and fixed for subtitle field</p>
+<h3>Heading 3</h3>
+<h4>Heading 4&nbsp;</h4>
+<p>&nbsp;</p>
+<blockquote>
+<p>Block Quote: <span style=""text-decoration: underline;"">underlined</span>, <strong>bold</strong>, <em>italic</em>, <a href=""https://www.google.com"" target=""_blank"" rel=""noopener"">hyperlink</a></p>
+</blockquote>
+<pre>Code Block</pre>
+<p>&nbsp;</p>
+<p>Paragraph unformatted left align</p>
+<p style=""text-align: center;""><strong>Paragraph bold center align</strong></p>
+<p style=""text-align: right;""><em>Paragraph italic right align</em></p>
+<p style=""text-align: justify;""><span style=""text-decoration: underline;"">Paragraph underline justified</span></p>
+<p><strong>Paragraph bold</strong></p>
+<p><em>Paragraph italic</em></p>
+<p><span style=""text-decoration: underline;"">Paragraph underline</span></p>
+<ul>
+<li>Paragraph bulleted list item</li>
+<li><span style=""text-decoration: underline;"">Paragraph underline bulleted list item</span></li>
+</ul>
+<p><strong><span style=""text-decoration: underline;"">Paragraph underline bold</span></strong></p>
+<p style=""padding-left: 40px;"">Paragraph indented 1</p>
+<p style=""padding-left: 80px;"">Paragraph indented 2</p>
+<p style=""padding-left: 120px;"">Paragraph indented 3</p>
+<ol>
+<li>Paragraph numbered list 1</li>
+<li>Paragraph numbered list 2</li>
+</ol>
+<p><span style=""text-decoration: line-through;"">Paragraph strikethrough</span></p>
+<p><sup>Paragraph superscript</sup></p>
+<p><sub>Paragraph subscript</sub></p>
+<p><code>Paragraph code formatting</code></p>
+<p><a href=""http://google.com"" rel=""noopener"">Paragraph hyperlink</a></p>
+<p>Emoji - I included a sampling of the available emojis, there were a lot more: 👍😀😘😍😆😜😅😂😱😀😁😂😃😄😅😆😉😃😄😅😛😳👹👿👻👱👮👳👫🚣👨‍👩‍👧👠👚🎒🐍🐨🦃🐬🍼🍭🏕️🏞️🛳️⚓🚲🌝🎼🎬📃💊✝️✖️🔡🔸🔳🏳️‍🌈🏳️</p>","Glossary","","","2025-02-04T06:02:40.975Z","DRAFT","false"}
