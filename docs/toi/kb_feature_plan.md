@@ -61,6 +61,7 @@ Last Updated: 2025-02-02 19:32 PST
 - article_subtitle (String)
 - article_language (String, enum: "English")
 - article_url (String) - Uniqueness identifier for version conflict resolution
+  > **Note:** The article_url field generation is currently partially implemented but intentionally not fully functional. This is to preserve Hubspot's ability to manage URLs and maintain entry relationships. The current implementation includes URL generation logic but does not actively update the field in postgres. This state should be maintained until Hubspot integration requirements are fully addressed.
 - article_body (Text)
 - category (String, enum: ["Glossary", "FAQs", "Getting started", "Troubleshooting", "General", "Reports", "Integrations"])
 - subcategory (String)
@@ -191,29 +192,82 @@ LLM Integration:
 1. Interactive Mode:
    - Dedicated "AI Assistance" section with clear heading
    - Card-based interface with blue theme and chat icon
-   - Feature list explaining capabilities:
-     - Ask specific questions
-     - Get writing suggestions
-     - Refine content iteratively
+   - Enhanced feature list:
+     - Historical evolution tracking
+     - Technical depth layering
+     - Natural Hedgehog integration
+     - SEO optimization
+     - Enhanced technical verification
    - Full-width chat interface below feature list
-   - Conversation history with fixed height and scrollbar
-   - Aware of Article Title, Subtitle, and Body
+   - Evolution-aware conversation history
+   - Technical depth controls
+   - Research system integration
    - Category-specific prompting
-   - DuckDuckGo search integration
 
-2. Non-Interactive Mode:
-   - Green-themed card with lightning bolt icon
-   - Feature list explaining capabilities:
-     - Fact-checks against reliable sources
-     - Adds relevant citations
-     - Improves clarity and completeness
-   - "Update with AI" button with loading animation
-   - Confirmation dialog explaining the process
-   - Side-by-side features and button layout
-   - Writer agent for content generation
-   - Editor agent for refinement
-   - DuckDuckGo verification
-   - Citation management system
+2. Quick Update Mode:
+   - One-click improvement with progress indicator
+   - Enhanced research capabilities:
+     - Domain-specific searching across:
+       - docs.githedgehog.com
+       - githedgehog.com/docs
+       - github.com/hedgehog
+       - githedgehog.com/blog
+       - githedgehog.com/news
+       - githedgehog.com/resources
+     - Architectural pattern matching for:
+       - Core Hedgehog Patterns
+       - High Availability Patterns
+       - Network Patterns
+       - Operational Patterns
+       - Scaling Patterns
+       - Security Patterns
+       - Modern Infrastructure
+       - Performance Patterns
+   - Result processing with:
+     - Content hashing for deduplication
+     - Structured parsing
+     - Timestamp tracking
+     - Enhanced error handling
+
+3. Prompt Management:
+   - Side panel for prompt customization
+   - Enhanced prompt templates:
+     - Quick Update:
+       - Historical evolution tracking
+       - Technical depth layering
+       - Natural Hedgehog integration
+       - SEO optimization
+       - Technical verification requirements
+       - Hubspot formatting rules
+     - Interactive Chat (Edit):
+       - Context-aware assistance with evolution tracking
+       - Technical depth-aware guidance
+       - Format preservation with enhanced rules
+       - Technical accuracy focus with expanded verification
+     - Interactive Chat (New):
+       - Empty state handling with historical context
+       - Evolution-based content structuring
+       - Technical depth layering guidance
+       - Format requirements with enhanced rules
+
+4. Response Format:
+   ```xml
+   <response>
+     <subtitle>[content]</subtitle>
+     <body>[content]</body>
+     <keywords>[content]</keywords>
+     <explanation>[content]</explanation>
+     <evolution_context>[content]</evolution_context>
+     <technical_depth>[content]</technical_depth>
+   </response>
+   ```
+
+5. Research System:
+   - Domain-specific search implementation
+   - Architectural pattern matching
+   - Result deduplication and processing
+   - Enhanced error handling and logging
+   - Rate limiting and caching
 
 ### 5. Hubspot Content Format Compliance
 #### A. Format Requirements
