@@ -17,7 +17,7 @@ const kbEntrySchema = z.object({
     keywords: z.string().optional(),
     archived: z.boolean().optional(),
   }).optional(),
-  internal_status: z.enum(['Draft', 'Review', 'Approved', 'Archived']),
+  internal_status: z.enum(['Draft', 'Review', 'Approved', 'Archived', 'Needs Work']),
   visibility: z.enum(['Public', 'Private']),
   notes: z.string().optional(),
 });

@@ -422,6 +422,7 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
                   <option value="Review">Review</option>
                   <option value="Approved">Approved</option>
                   <option value="Archived">Archived</option>
+                  <option value="Needs Work">Needs Work</option>
                 </select>
               </div>
 

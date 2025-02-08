@@ -10,7 +10,7 @@ const kbEntrySchema = z.object({
   category: z.enum(['Glossary', 'FAQs', 'Getting started', 'Troubleshooting', 'General', 'Reports', 'Integrations']),
   subcategory: z.string().optional(),
   keywords: z.string().optional(),
-  internal_status: z.enum(['Draft', 'Review', 'Approved', 'Archived']),
+  internal_status: z.enum(['Draft', 'Review', 'Approved', 'Archived', 'Needs Work']),
   visibility: z.enum(['Public', 'Private']),
   notes: z.preprocess((val) => val === null ? "" : val, z.string()).optional(),
   metadata: z.record(z.unknown()).optional(),
