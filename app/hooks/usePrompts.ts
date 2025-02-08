@@ -38,6 +38,9 @@ CONTENT STRUCTURE:
    - Address common misconceptions if applicable
    - Use specific, accurate technical details
    - Focus on examples that help illustrate the concept
+   - STRICT LENGTH REQUIREMENT: Maximum 1,225 characters (including HTML tags)
+   - Typical length: 4-6 paragraphs
+   - Focus on concise, impactful content over length
 
 3. Keywords Section:
    - Include primary topic keywords (e.g., "container orchestration")
@@ -126,6 +129,10 @@ KNOWLEDGE BASE STANDARDS:
    - Focus on examples that help illustrate the concept
    - Build from fundamental concepts
    - Use clear, relatable examples
+   - DEFAULT LENGTH GUIDELINE: Aim for maximum 1,225 characters (including HTML tags)
+   - NOTE: Length can be exceeded only when explicitly requested by the user
+   - Typical length: 4-6 paragraphs
+   - Focus on concise, impactful content over length
 
 3. Formatting Standards:
    - Paragraphs: Wrap in <p> tags
