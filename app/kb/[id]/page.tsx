@@ -198,6 +198,34 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
     }
   };
 
+  const handleSubmitAndNext = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!entry || !entry.navigation?.next) return;
+
+    setSaving(true);
+    setError(null);
+
+    try {
+      const response = await fetch(`/api/kb-entries/${entry.id}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(entry),
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to update KB entry');
+      }
+
+      router.push(`/kb/${entry.navigation.next.id}`);
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'An error occurred');
+    } finally {
+      setSaving(false);
+    }
+  };
+
   const handleAutoUpdate = async () => {
     if (!entry) return;
     
@@ -624,44 +652,33 @@ export default function EditKbEntryPage({ params }: { params: Promise<{ id: stri
           </div>
 
           <hr className="my-8 border-t border-gray-200" />
-          <div className="flex justify-between items-center">
+          <div className="flex justify-between mt-6">
             <button
               type="button"
               onClick={handleDelete}
-              className="px-4 py-2 bg-red-600 text-white rounded-md hover:bg-red-700 transition-colors flex items-center space-x-2"
-              disabled={saving}
+              className="inline-flex items-center px-4 py-2 border border-red-300 rounded-md shadow-sm text-sm font-medium text-red-700 bg-white hover:bg-red-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              <svg 
-                className="w-5 h-5" 
-                fill="none" 
-                stroke="currentColor" 
-                viewBox="0 0 24 24"
-              >
-                <path 
-                  strokeLinecap="round" 
-                  strokeLinejoin="round" 
-                  strokeWidth={2} 
-                  d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" 
-                />
-              </svg>
-              <span>Delete Entry</span>
+              Delete Entry
             </button>
-
-            <div className="flex space-x-4">
-              <button
-                type="button"
-                onClick={() => router.push('/kb')}
-                className="px-4 py-2 border border-gray-300 rounded-md hover:bg-gray-50 transition-colors"
-              >
-                Cancel
-              </button>
+            <div className="flex gap-4">
               <button
                 type="submit"
-                className="px-4 py-2 bg-orange-600 text-white rounded-md hover:bg-orange-700 transition-colors"
                 disabled={saving}
+                onClick={handleSubmit}
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
               >
                 {saving ? 'Saving...' : 'Save Changes'}
               </button>
+              {entry?.navigation?.next && (
+                <button
+                  type="button"
+                  disabled={saving}
+                  onClick={handleSubmitAndNext}
+                  className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500 disabled:opacity-50"
+                >
+                  {saving ? 'Saving...' : 'Save & Next'}
+                </button>
+              )}
             </div>
           </div>
 
