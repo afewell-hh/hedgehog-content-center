@@ -78,8 +78,8 @@ export default function ExportKbPage() {
         newline: '\r\n', // Windows-style newlines for compatibility
       });
 
-      // Create and download file
-      const blob = new Blob(['\ufeff' + csv], { type: 'text/csv;charset=utf-8;' }); // Add BOM for Excel compatibility
+      // Create and download file without BOM
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8' });
       const link = document.createElement('a');
       const timestamp = new Date().toISOString().split('T')[0];
       link.href = URL.createObjectURL(blob);
@@ -182,7 +182,7 @@ export default function ExportKbPage() {
             <li>All entries will be formatted according to Hubspot requirements</li>
             <li>Select a category to filter the export, or "All Categories" to export everything</li>
             <li>The export file will be named kb-export-[date].csv</li>
-            <li>The CSV file includes a BOM marker for Excel compatibility</li>
+            <li>The CSV file does not include a BOM marker</li>
           </ul>
         </div>
       </div>
