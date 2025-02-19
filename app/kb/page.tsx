@@ -32,6 +32,7 @@ interface KbEntry {
   internal_status: string;
   visibility: string;
   last_modified_date: string;
+  article_url: string;
 }
 
 const statusColors = {
@@ -105,10 +106,24 @@ export default function KbListPage() {
       ),
     },
     {
-      headerName: 'Visibility',
-      field: 'visibility',
+      headerName: 'Article URL',
+      field: 'article_url',
       filter: 'agTextColumnFilter',
-      width: 120,
+      flex: 1,
+      cellRenderer: (params: { value: string }) => {
+        if (!params.value) return '';
+        return (
+          <a
+            href={params.value}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-blue-600 hover:text-blue-800 truncate block"
+            title={params.value}
+          >
+            {params.value}
+          </a>
+        );
+      },
     },
     {
       headerName: 'Last Modified',
