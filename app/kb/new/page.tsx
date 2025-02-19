@@ -51,7 +51,7 @@ const initialFormData: FormData = {
 
 interface PromptPanelState {
   isOpen: boolean;
-  type: 'newEntry';
+  type: 'quick-update' | 'interactive' | 'newEntry';
   prompt: string;
 }
 
@@ -158,9 +158,12 @@ export default function CreateKbEntryPage() {
     setPromptPanel(prev => ({ ...prev, isOpen: false }));
   };
 
-  const handleUpdatePrompt = (newPrompt: string) => {
-    updatePrompt('newEntry', newPrompt);
+  const handlePromptChange = (newPrompt: string) => {
     setPromptPanel(prev => ({ ...prev, prompt: newPrompt }));
+  };
+
+  const handlePromptSave = () => {
+    updatePrompt('newEntry', promptPanel.prompt);
   };
 
   return (
@@ -169,8 +172,8 @@ export default function CreateKbEntryPage() {
 
       {error && (
         <div className="bg-red-100 border border-red-400 text-red-700 px-4 py-3 rounded mb-4">
-          {error}
-        </div>
+        {error}
+      </div>
       )}
 
       <form 
@@ -335,64 +338,73 @@ export default function CreateKbEntryPage() {
         <div className="mt-8">
           <h2 className="text-xl font-semibold text-gray-900 mb-4">AI Assistance</h2>
           <p className="text-gray-600 mb-6">
-            Get help from AI while creating your KB entry:
+            Get help creating your KB entry:
           </p>
           
           <div className="space-y-6">
-            {/* Interactive Chat Card */}
-            <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-orange-500 transition-colors">
-              <div className="flex items-start mb-4">
-                <div className="flex-shrink-0">
-                  <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
-                  </svg>
-                </div>
-                <div className="ml-4">
-                  <h3 className="text-lg font-medium text-gray-900">Interactive Chat</h3>
-                  <p className="mt-1 text-sm text-gray-500">
-                    Have a conversation with AI to get help creating your content.
-                  </p>
-                  <ul className="mt-2 text-sm text-gray-600 space-y-1">
-                    <li>• Ask specific questions</li>
-                    <li>• Get writing suggestions</li>
-                    <li>• Refine content iteratively</li>
-                  </ul>
-                </div>
-              </div>
-              <div className="space-y-8 px-4 py-6">
-                <div className="flex flex-col space-y-4">
-                  <h1 className="text-2xl font-bold">Create New KB Entry</h1>
-                  
-                  {/* Interactive Chat Section */}
-                  <div className="mb-6 bg-gray-50 p-4 rounded-lg">
-                    <div className="flex justify-between items-center mb-2">
-                      <h2 className="text-lg font-semibold">Interactive Assistant</h2>
-                      <button
-                        onClick={handleOpenPrompt}
-                        className="text-sm text-blue-600 hover:text-blue-800"
-                      >
-                        View/Edit Prompt
-                      </button>
+            {/* AI Assistance Section */}
+            <div className="space-y-8 px-4 py-6">
+              <div className="flex flex-col space-y-4">
+                <h2 className="text-xl font-semibold text-gray-900">AI Assistance</h2>
+                <p className="text-gray-600">
+                  Get help from AI while creating your KB entry
+                </p>
+                
+                {/* Interactive Chat Section */}
+                <div className="bg-white rounded-lg border border-gray-200 p-6 hover:border-orange-500 transition-colors">
+                  <div className="flex items-start mb-4">
+                    <div className="flex-shrink-0">
+                      <svg className="h-6 w-6 text-orange-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-5l-5 5v-5z" />
+                      </svg>
                     </div>
-                    <p className="text-sm text-gray-600 mb-4">
-                      Get help creating your KB entry. The assistant will guide you through the process
-                      and ensure your content meets our quality standards.
-                    </p>
-                    <KbLlmInteraction
-                      prompt={promptPanel.prompt}
-                      title={formData.article_title}
-                      subtitle={formData.article_subtitle}
-                      body={formData.article_body}
-                      category={formData.category}
-                      keywords={formData.keywords}
-                      onUpdate={(field, value) => {
-                        setFormData(prev => ({
-                          ...prev,
-                          [field]: value
-                        }));
-                      }}
-                    />
+                    <div className="ml-4">
+                      <div className="flex justify-between items-start">
+                        <div>
+                          <h3 className="text-lg font-medium text-gray-900">Interactive Chat</h3>
+                          <p className="mt-1 text-sm text-gray-500">
+                            Have a conversation with AI to get help creating your content.
+                          </p>
+                        </div>
+                        <button
+                          onClick={handleOpenPrompt}
+                          className="flex items-center text-gray-500 hover:text-orange-600 transition-colors"
+                        >
+                          <span className="mr-2 text-sm">View/Edit Prompt</span>
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                            />
+                          </svg>
+                        </button>
+                      </div>
+                      <ul className="mt-2 text-sm text-gray-600 space-y-1">
+                        <li>• Ask specific questions</li>
+                        <li>• Get writing suggestions</li>
+                        <li>• Refine content iteratively</li>
+                      </ul>
+                    </div>
                   </div>
+                  <KbLlmInteraction
+                    entry={formData}
+                    onUpdate={(updatedEntry) => {
+                      setFormData(prev => ({
+                        ...prev,
+                        article_subtitle: updatedEntry.article_subtitle,
+                        article_body: updatedEntry.article_body,
+                        keywords: updatedEntry.keywords
+                      }));
+                    }}
+                    prompt={prompts.newEntry}
+                  />
                 </div>
               </div>
             </div>
@@ -402,10 +414,11 @@ export default function CreateKbEntryPage() {
         {/* Prompt Panel */}
         <PromptPanel
           isOpen={promptPanel.isOpen}
-          onClose={handleClosePrompt}
-          prompt={promptPanel.prompt}
-          onUpdate={handleUpdatePrompt}
           type={promptPanel.type}
+          prompt={promptPanel.prompt}
+          onClose={handleClosePrompt}
+          onPromptChange={handlePromptChange}
+          onSave={handlePromptSave}
         />
 
         <hr className="my-8 border-t border-gray-200" />

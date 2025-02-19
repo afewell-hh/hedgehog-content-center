@@ -1,4 +1,5 @@
 import OpenAI from 'openai';
+import { KnowledgeBaseProcessor } from '@/kb_ref/kb_processor';
 
 // Initialize OpenAI client
 const openai = new OpenAI({
@@ -19,9 +20,24 @@ export interface VerificationResult {
   suggestedChanges?: string;
 }
 
+export interface GenerationResult {
+  subtitle: string;
+  body: string;
+  metadata: {
+    intent_analysis: any;
+    research_results: any;
+    quality_scores: any;
+    recommendations: any[];
+  };
+}
+
 class LLMService {
   private static instance: LLMService;
-  private constructor() {}
+  private processor: KnowledgeBaseProcessor;
+  
+  private constructor() {
+    this.processor = new KnowledgeBaseProcessor('', 'openai');  // Empty input_file as we're using it per-request
+  }
 
   public static getInstance(): LLMService {
     if (!LLMService.instance) {
@@ -30,27 +46,32 @@ class LLMService {
     return LLMService.instance;
   }
 
-  async generateContent(prompt: string, context: string): Promise<string> {
+  async generateContent(title: string, currentBody: string = '', currentSubtitle: string = ''): Promise<GenerationResult> {
     try {
-      const completion = await openai.chat.completions.create({
-        model: "gpt-4",
-        messages: [
-          {
-            role: "system",
-            content: "You are a technical writer creating content for Hedgehog's knowledge base. Focus on accuracy and clarity.",
-          },
-          {
-            role: "user",
-            content: `Context: ${context}\n\nPrompt: ${prompt}`,
-          },
-        ],
-        temperature: 0.7,
-      });
+      const [subtitle, body, _, metadata] = await this.processor.process_entry(
+        title,
+        currentBody,
+        currentSubtitle,
+        ''  // Context is now handled by ResearchAgent
+      );
 
-      return completion.choices[0]?.message?.content || '';
+      if (!subtitle || !body) {
+        throw new Error('Failed to generate content');
+      }
+
+      return {
+        subtitle,
+        body,
+        metadata: {
+          intent_analysis: metadata.intent_analysis || {},
+          research_results: metadata.research_results || {},
+          quality_scores: metadata.quality_scores || {},
+          recommendations: metadata.recommendations || []
+        }
+      };
     } catch (error) {
       console.error('Error generating content:', error);
-      throw new Error('Failed to generate content');
+      throw error;
     }
   }
 

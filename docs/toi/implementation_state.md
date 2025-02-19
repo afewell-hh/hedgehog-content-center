@@ -6,7 +6,7 @@
 - AG Grid for efficient data display and interaction
 - OpenAI GPT-4 integration for content generation and verification
 - TailwindCSS for styling
-- SimpleMDE for Markdown editing (both question and answer fields)
+- HubSpot-compliant HTML formatting for KB entries
 - DuckDuckGo integration for technical verification
 
 ## Completed Features
@@ -80,9 +80,11 @@
         - Real-time content suggestions
         - Specialized prompts for new vs. existing entries
       2. Quick Update (Edit page only):
-        - One-click content improvement
-        - SEO keyword generation
-        - Technical verification
+        - Enhanced content generation with historical evolution tracking
+        - Technical depth layering approach
+        - Improved Hedgehog feature integration
+        - SEO keyword optimization
+        - Technical verification with expanded scope
         - Loading state animation
         - Confirmation dialog
     - Citation management system
@@ -95,22 +97,24 @@
   - Prompt System:
     - Customizable prompts for each AI mode
     - Side panel for viewing/editing prompts
-    - Specialized prompt templates:
+    - Enhanced prompt templates:
       1. Quick Update:
-        - Focused on wholesale content improvement
-        - SEO keyword generation
+        - Historical evolution tracking
+        - Technical depth layering
+        - Natural Hedgehog integration
+        - SEO optimization with keyword generation
         - Technical verification requirements
         - Hubspot formatting rules
       2. Interactive Chat (Edit):
-        - Context-aware assistance
-        - Field-specific guidance
-        - Format preservation
-        - Technical accuracy focus
+        - Context-aware assistance with evolution tracking
+        - Technical depth-aware guidance
+        - Format preservation with enhanced rules
+        - Technical accuracy focus with expanded verification
       3. Interactive Chat (New):
-        - Empty state handling
-        - Step-by-step guidance
-        - Format requirements
-        - Technical accuracy focus
+        - Empty state handling with historical context
+        - Evolution-based content structuring
+        - Technical depth layering guidance
+        - Format requirements with enhanced rules
     - Response Format:
       ```xml
       <response>
@@ -118,19 +122,32 @@
         <body>[content]</body>
         <keywords>[content]</keywords>
         <explanation>[content]</explanation>
+        <evolution_context>[content]</evolution_context>
+        <technical_depth>[content]</technical_depth>
       </response>
       ```
-  - Navigation:
-    - Main KB list page with export button
-    - New entry page with interactive chat
-    - Edit entry page with both LLM modes
-    - Import page with CSV validation
-    - Export page with Hubspot compliance
-  - Hubspot Integration:
-    - Strict formatting compliance
-    - CSV export compatibility
-    - Title format standardization
-    - Required field validation
+  - Research System:
+    - Enhanced domain-specific searching across:
+      - docs.githedgehog.com
+      - githedgehog.com/docs
+      - github.com/hedgehog
+      - githedgehog.com/blog
+      - githedgehog.com/news
+      - githedgehog.com/resources
+    - Architectural pattern matching for:
+      - Core Hedgehog Patterns
+      - High Availability Patterns
+      - Network Patterns
+      - Operational Patterns
+      - Scaling Patterns
+      - Security Patterns
+      - Modern Infrastructure
+      - Performance Patterns
+    - Result processing with:
+      - Content hashing for deduplication
+      - Structured parsing
+      - Timestamp tracking
+      - Enhanced error handling
 - Location:
   - List view: `/app/kb/page.tsx`
   - Detail view: `/app/kb/[id]/page.tsx`
@@ -153,6 +170,48 @@
   - PostgreSQL for data storage
   - OpenAI API (GPT-4) for content generation
   - DuckDuckGo search for technical verification
+
+### KB Content Formatting
+- Description: System for ensuring KB content meets HubSpot format requirements
+- Implementation:
+  - Format utilities for consistent content processing:
+    - Title: Plain text formatting
+    - Subtitle: Plain text with educational focus
+    - Body: HubSpot-compliant HTML with allowed tags
+    - Keywords: SEO-optimized comma-separated list
+  - URL management system:
+    - Automatic URL generation following pattern: githedgehog.com/kb/{category}/{slug}
+    - URL validation and preservation logic
+  - Features:
+    - HTML tag whitelist with attribute support
+    - Markdown to HTML conversion
+    - Text alignment and decoration handling
+    - Cross-linking suggestion system
+    - SEO optimization checks
+- Location:
+  - Format utilities: `/lib/formatUtils.ts`
+  - URL utilities: `/lib/urlUtils.ts`
+  - Auto-update route: `/app/api/llm/kb/auto/route.ts`
+- Dependencies: None (pure TypeScript implementation)
+
+### KB Quick Update
+- Description: AI-assisted KB entry enhancement system
+- Implementation:
+  - Two-stage content generation:
+    1. Research phase with githedgehog.com and GitHub integration
+    2. Content generation with format compliance
+  - Features:
+    - Context-aware content generation
+    - Hedgehog reference integration
+    - SEO optimization
+    - Format compliance validation
+    - Cross-linking suggestions
+    - Business value alignment
+- Location:
+  - Page: `/app/kb/[id]/page.tsx`
+  - Auto-update API: `/app/api/llm/kb/auto/route.ts`
+  - Prompt system: `/app/hooks/usePrompts.ts`
+- Dependencies: OpenAI API, DuckDuckGo search
 
 ### AG Grid Implementation
 - Required Modules:

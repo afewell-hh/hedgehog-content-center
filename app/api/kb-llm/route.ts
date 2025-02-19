@@ -4,8 +4,9 @@ import { z } from 'zod';
 
 // Validation schemas
 const generateContentSchema = z.object({
-  prompt: z.string(),
-  context: z.string(),
+  title: z.string(),
+  currentBody: z.string().optional(),
+  currentSubtitle: z.string().optional(),
 });
 
 const processCitationsSchema = z.object({
@@ -25,9 +26,9 @@ export async function POST(request: Request) {
 
     switch (action) {
       case 'generate': {
-        const { prompt, context } = generateContentSchema.parse(body);
-        const content = await llmService.generateContent(prompt, context);
-        return NextResponse.json({ content });
+        const { title, currentBody, currentSubtitle } = generateContentSchema.parse(body);
+        const result = await llmService.generateContent(title, currentBody, currentSubtitle);
+        return NextResponse.json(result);
       }
 
       case 'citations': {

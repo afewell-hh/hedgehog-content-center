@@ -40,6 +40,37 @@ The Hedgehog Content Center is a web application designed to manage and transfor
 
 ## AI Assistance Architecture
 
+### Research System
+The application implements a sophisticated research system for gathering Hedgehog-related information:
+
+1. Core Components:
+   - `ResearchAgent` (`/kb_ref/kb_processor.py`)
+     - Domain-specific search across Hedgehog resources
+     - Architectural pattern matching
+     - Result deduplication and processing
+   
+   - Search Domains:
+     - docs.githedgehog.com
+     - githedgehog.com/docs
+     - github.com/hedgehog
+     - githedgehog.com/blog
+     - githedgehog.com/news
+     - githedgehog.com/resources
+
+2. Architectural Patterns:
+   ```typescript
+   interface PatternCategories {
+     corePatterns: string[];      // Cloud native, network fabric, etc.
+     haPatterns: string[];        // Active-active, redundancy, etc.
+     networkPatterns: string[];   // ECMP, BGP, EVPN, etc.
+     operationalPatterns: string[]; // Zero-touch provisioning, etc.
+     scalingPatterns: string[];   // Horizontal/vertical scaling
+     securityPatterns: string[];  // Microsegmentation, zero trust
+     infrastructurePatterns: string[]; // Kubernetes, gitops
+     performancePatterns: string[]; // Traffic engineering, QoS
+   }
+   ```
+
 ### Prompt System
 The application implements a sophisticated prompt management system for AI interactions:
 
@@ -48,18 +79,20 @@ The application implements a sophisticated prompt management system for AI inter
      - Manages prompt state and persistence
      - Provides prompt update functionality
      - Handles default fallbacks
+     - Supports evolution tracking
    
    - `PromptPanel` Component (`/components/PromptPanel.tsx`)
      - Side panel UI for prompt viewing/editing
      - Real-time prompt updates
      - Type-specific prompt management
+     - Technical depth controls
 
 2. Prompt Types:
    ```typescript
    interface Prompts {
-     quickUpdate: string;    // Non-interactive content improvement
-     interactive: string;    // Edit page interactive chat
-     newEntry: string;      // New page interactive chat
+     quickUpdate: string;    // Enhanced content improvement with evolution tracking
+     interactive: string;    // Edit page interactive chat with technical depth
+     newEntry: string;      // New page interactive chat with evolution context
    }
    ```
 
@@ -70,34 +103,40 @@ The application implements a sophisticated prompt management system for AI inter
      <body>[content]</body>
      <keywords>[content]</keywords>
      <explanation>[content]</explanation>
+     <evolution_context>[content]</evolution_context>
+     <technical_depth>[content]</technical_depth>
    </response>
    ```
 
 ### AI Integration Modes
 
 1. Quick Update Mode:
-   - Purpose: One-click content improvement
+   - Purpose: Enhanced content improvement with historical context
    - Components:
      - Auto-update endpoint (`/api/llm/kb/auto/route.ts`)
+     - Research system integration
      - Loading state management
      - Field synchronization
    - Features:
-     - SEO keyword generation
-     - Technical verification
+     - Historical evolution tracking
+     - Technical depth layering
+     - Natural Hedgehog integration
+     - SEO optimization
+     - Enhanced technical verification
      - Format compliance
-     - Content improvement
 
 2. Interactive Chat Mode:
-   - Purpose: Guided content creation/improvement
+   - Purpose: Evolution-aware content creation/improvement
    - Components:
      - Chat interface (`KbLlmInteraction`)
-     - Context provider
+     - Research context provider
+     - Technical depth manager
      - Field synchronization
    - Features:
-     - Real-time suggestions
-     - Context-aware assistance
-     - Format guidance
-     - Technical verification
+     - Evolution-based suggestions
+     - Technical depth-aware assistance
+     - Enhanced format guidance
+     - Expanded technical verification
 
 ### Content Processing Pipeline
 
@@ -109,17 +148,28 @@ The application implements a sophisticated prompt management system for AI inter
      body: string;
      category: string;
      keywords: string;
+     evolution_context?: string;
+     technical_depth?: string;
    }
    ```
 
-2. Verification Steps:
+2. Research Steps:
+   - Domain-specific searching
+   - Architectural pattern matching
+   - Result deduplication
+   - Content validation
+
+3. Verification Steps:
    - Technical accuracy check
+   - Evolution context validation
+   - Technical depth assessment
    - Format compliance validation
    - Source verification
    - Keyword relevance
 
-3. Output Processing:
-   - Format standardization
+4. Output Processing:
+   - Evolution-aware formatting
+   - Technical depth layering
    - Field validation
    - HTML/Markdown hybrid formatting
    - Keyword optimization
@@ -271,6 +321,64 @@ The application implements a sophisticated prompt management system for AI inter
   - `/app/components/`: Shared components
   - `/lib/llm/`: LLM service and utilities
   - `/lib/hooks/`: Custom React hooks
+
+### Content Processing Pipeline
+- **Format Utilities**
+  - Purpose: Ensure consistent content formatting across the application
+  - Components:
+    - Title Formatter: Plain text processing
+    - Subtitle Formatter: Educational glossary-style formatting
+    - Body Formatter: HubSpot-compliant HTML processing
+    - URL Generator: Standardized KB URL creation
+  - Key Interfaces:
+    ```typescript
+    interface FormatUtils {
+      formatKbTitle(title: string): string;
+      formatKbSubtitle(subtitle: string): string;
+      formatKbBody(body: string): string;
+    }
+
+    interface UrlUtils {
+      generateKbUrl(category: string, title: string): string;
+      shouldUpdateKbUrl(currentUrl: string | null): boolean;
+    }
+    ```
+  - Update Triggers:
+    - Content creation/editing
+    - Quick Update operations
+    - Batch content processing
+
+### LLM Integration System
+- **Quick Update Feature**
+  - Purpose: AI-assisted KB entry enhancement
+  - Components:
+    - Research Agent: Gathers context from multiple sources
+    - Content Generator: Creates formatted content
+    - Quality Control: Validates output against requirements
+  - Key Interfaces:
+    ```typescript
+    interface QuickUpdateRequest {
+      title: string;
+      subtitle: string;
+      body: string;
+      category: string;
+      keywords: string;
+      article_url: string;
+      prompt: string;
+    }
+
+    interface QuickUpdateResponse {
+      subtitle: string;
+      body: string;
+      keywords: string;
+      article_url: string;
+    }
+    ```
+  - Dependencies:
+    - OpenAI GPT-4
+    - DuckDuckGo Search
+    - Format Utilities
+    - URL Management
 
 ### Backend (API Routes)
 - Purpose: Handle data operations and LLM integration
@@ -485,3 +593,41 @@ The focus loss bug manifests as:
 - Required repeated clicking
 
 If these symptoms appear, verify implementation against this pattern.
+
+## Content Formatting System
+- **HTML Tag Management**
+  - Whitelist of allowed tags and attributes
+  - Support for text alignment and decoration
+  - Markdown to HTML conversion
+  - Cross-linking capability
+
+- **URL Management**
+  - Pattern: `https://githedgehog.com/kb/{category}/{slug}`
+  - Slug generation from title
+  - Preservation of existing valid URLs
+  - Validation system
+
+### SEO Optimization
+- **Content Length Guidelines**
+  - Subtitle: 1-2 sentences
+  - Body: 300-1000 words (optimized for search)
+  - Keywords: 5-8 relevant technical terms
+
+- **Keyword Integration**
+  - Primary topic keywords
+  - Related technical terms
+  - Problem-solving keywords
+  - Industry-standard terminology
+
+### Quality Control System
+- **Content Validation**
+  - Technical accuracy checks
+  - Format compliance verification
+  - SEO optimization validation
+  - Cross-linking suggestions
+
+- **Business Value Alignment**
+  - Hedgehog reference validation
+  - Value proposition integration
+  - Use case relevance
+  - Technical depth assessment
