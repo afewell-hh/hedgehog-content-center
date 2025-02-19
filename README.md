@@ -14,7 +14,7 @@ A Next.js application for managing knowledge base content with AI-powered featur
 
 ```bash
 # Clone the repository
-git clone <repository-url>
+git clone https://github.com/afewell-hh/hedgehog-content-center.git
 cd hedgehog-content-center
 
 # Install dependencies
