@@ -70,8 +70,10 @@
 - Description: Comprehensive system for managing Knowledge Base entries
 - Implementation:
   - Core Features:
-    - AG Grid list view with category filtering
+    - AG Grid list view with category filtering and article URL display
     - Detail view with SimpleMDE editor
+    - Article URL field exposed in both list and edit views
+    - CSV Export with proper Hubspot format (no BOM marker)
     - AI Assistance with two distinct modes:
       1. Interactive Chat:
         - Card-based UI with dialogue history
@@ -94,82 +96,25 @@
     - Visibility control (Public/Private)
     - Technical verification system
     - Previous/Next record navigation
-  - Prompt System:
-    - Customizable prompts for each AI mode
-    - Side panel for viewing/editing prompts
-    - Enhanced prompt templates:
-      1. Quick Update:
-        - Historical evolution tracking
-        - Technical depth layering
-        - Natural Hedgehog integration
-        - SEO optimization with keyword generation
-        - Technical verification requirements
-        - Hubspot formatting rules
-      2. Interactive Chat (Edit):
-        - Context-aware assistance with evolution tracking
-        - Technical depth-aware guidance
-        - Format preservation with enhanced rules
-        - Technical accuracy focus with expanded verification
-      3. Interactive Chat (New):
-        - Empty state handling with historical context
-        - Evolution-based content structuring
-        - Technical depth layering guidance
-        - Format requirements with enhanced rules
-    - Response Format:
-      ```xml
-      <response>
-        <subtitle>[content]</subtitle>
-        <body>[content]</body>
-        <keywords>[content]</keywords>
-        <explanation>[content]</explanation>
-        <evolution_context>[content]</evolution_context>
-        <technical_depth>[content]</technical_depth>
-      </response>
-      ```
-  - Research System:
-    - Enhanced domain-specific searching across:
-      - docs.githedgehog.com
-      - githedgehog.com/docs
-      - github.com/hedgehog
-      - githedgehog.com/blog
-      - githedgehog.com/news
-      - githedgehog.com/resources
-    - Architectural pattern matching for:
-      - Core Hedgehog Patterns
-      - High Availability Patterns
-      - Network Patterns
-      - Operational Patterns
-      - Scaling Patterns
-      - Security Patterns
-      - Modern Infrastructure
-      - Performance Patterns
-    - Result processing with:
-      - Content hashing for deduplication
-      - Structured parsing
-      - Timestamp tracking
-      - Enhanced error handling
-- Location:
-  - List view: `/app/kb/page.tsx`
-  - Detail view: `/app/kb/[id]/page.tsx`
-  - New entry: `/app/kb/new/page.tsx`
-  - Import: `/app/kb/import/page.tsx`
-  - Export: `/app/kb/export/page.tsx`
-  - KB API: `/app/api/kb-entries/route.ts`
-  - KB Entry API: `/app/api/kb-entries/[id]/route.ts`
-  - KB LLM API: `/app/api/llm/kb/route.ts`
-  - KB Auto LLM API: `/app/api/llm/kb/auto/route.ts`
-  - Prompts Hook: `/app/hooks/usePrompts.ts`
-  - LLM Service: `/lib/llm/openai.ts`
-  - LLM Hook: `/lib/hooks/useLLM.ts`
-  - LLM Chat Component: `/components/KbLlmInteraction.tsx`
-  - Prompt Panel: `/components/PromptPanel.tsx`
-- Dependencies: 
-  - AG Grid for data display
-  - SimpleMDE for Markdown editing
-  - Prisma for database operations
-  - PostgreSQL for data storage
-  - OpenAI API (GPT-4) for content generation
-  - DuckDuckGo search for technical verification
+  - File Structure:
+    - List view: `/app/kb/page.tsx`
+    - Edit view: `/app/kb/[id]/page.tsx`
+    - Export: `/app/kb/export/page.tsx`
+    - Import: `/app/kb/import/page.tsx`
+    - API endpoints:
+      - `/app/api/kb-entries/route.ts`
+      - `/app/api/kb-entries/[id]/route.ts`
+      - `/app/api/kb-entries/export/route.ts`
+      - `/app/api/kb-entries/import/route.ts`
+      - `/app/api/llm/kb/chat/route.ts`
+      - `/app/api/llm/kb/auto/route.ts`
+  - Dependencies:
+    - AG Grid
+    - SimpleMDE
+    - Prisma
+    - PostgreSQL
+    - OpenAI API
+    - DuckDuckGo search
 
 ### KB Content Formatting
 - Description: System for ensuring KB content meets HubSpot format requirements
